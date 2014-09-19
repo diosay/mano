@@ -63,7 +63,7 @@
                     <property name="inf.dir">{app.dir}/WEB-INF</property>
                     <property name="tmp.dir">{inf.dir}/tmp</property>
                     <property name="view.dir">{app.dir}/views</property>
-                    <property name="view.engine">mano.otpl.OtplViewEngine</property>
+                    <property name="view.engine">mano.web.OtplViewEngine</property>
                 </add>
             </modules>
         </machine>

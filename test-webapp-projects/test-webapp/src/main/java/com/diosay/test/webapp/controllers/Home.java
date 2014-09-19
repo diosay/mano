@@ -1,22 +1,10 @@
 package com.diosay.test.webapp.controllers;
 
-import com.diosay.test.webapp.dao.SessionHelper;
-import com.diosay.test.webapp.model.Product;
-import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Optional;
-import java.util.function.BinaryOperator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import mano.http.HttpPostFile;
 import mano.web.Controller;
 import mano.web.PathParam;
 import mano.web.UrlMapping;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
 
 /**
  *
@@ -49,7 +37,6 @@ public class Home extends Controller {
         set("posttext", this.form("username"));
         this.session("sun", this.form("username"));
         view();
-        
         
         /*
          URL url=null;

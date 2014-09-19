@@ -5,7 +5,7 @@
  */
 package com.diosay.test.webapp;
 
-import mano.web.ActionContext;
+import mano.web.ViewContext;
 import mano.web.ActionFilter;
 import mano.web.HttpSession;
 
@@ -16,7 +16,7 @@ import mano.web.HttpSession;
 public class CheckLogin implements ActionFilter {
 
     @Override
-    public boolean onActionExecuting(ActionContext context) {
+    public boolean onActionExecuting(ViewContext context) {
         if("home".equalsIgnoreCase(context.getController()) && "login".equalsIgnoreCase(context.getAction())){
             return true;
         }
@@ -30,7 +30,7 @@ public class CheckLogin implements ActionFilter {
     }
 
     @Override
-    public boolean onActionExecuted(ActionContext context) {
+    public boolean onActionExecuted(ViewContext context) {
         return true;
     }
 

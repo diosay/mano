@@ -8,7 +8,7 @@
     <modules>
         <module>../mano</module>
         <module>mano-web</module>
-        <module>otpl4j</module>
+        <module>open-tpl</module>
         <module>mano-server</module>
     </modules>
     <properties>

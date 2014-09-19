@@ -20,12 +20,12 @@ public class AuthorizationFilter implements ActionFilter {
     }
 
     @Override
-    public boolean onActionExecuting(ActionContext context) {
+    public boolean onActionExecuting(ViewContext context) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public boolean onActionExecuted(ActionContext context) {
+    public boolean onActionExecuted(ViewContext context) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 

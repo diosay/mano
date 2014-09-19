@@ -9,9 +9,10 @@ package mano.web;
 
 import java.io.File;
 import mano.InvalidOperationException;
+import mano.http.HttpContext;
 
 /**
- *
+ * 定义一个渲染WEB视图的引擎抽象类。
  * @author jun <jun@diosay.com>
  */
 public abstract class ViewEngine {
@@ -19,6 +20,11 @@ public abstract class ViewEngine {
     private String tmpdir;
     private String viewdir;
 
+    /**
+     * 设置视图编译时的临时目录。
+     * @param path
+     * @throws InvalidOperationException 
+     */
     public void setTempdir(String path) throws InvalidOperationException {
 
         File file = new File(path);
@@ -40,6 +46,11 @@ public abstract class ViewEngine {
         tmpdir = file.getAbsolutePath();
     }
 
+    /**
+     * 获取视图编译时的临时目录。
+     * @return
+     * @throws InvalidOperationException 
+     */
     public String getTempdir() throws InvalidOperationException {
         if (tmpdir == null) {
             throw new InvalidOperationException("未设置临时目录。");
@@ -47,6 +58,10 @@ public abstract class ViewEngine {
         return tmpdir;
     }
 
+    /**
+     * 设置视图模板的根目录。
+     * @param path 
+     */
     public void setViewdir(String path) {
         File file = new File(path);
         if (!file.exists() || !file.isDirectory()) {
@@ -63,36 +78,30 @@ public abstract class ViewEngine {
         viewdir = file.getAbsolutePath();
     }
 
+    /**
+     * 获取视图模板的根目录。
+     * @return 
+     */
     public String getViewdir() {
         if (viewdir == null) {
             throw new InvalidOperationException("未设置视图目录。");
         }
         return viewdir;
     }
-
-    /**
-     * 编译一个模板文件，如果编译成功则返回编译的文件名，否则返回 null.
-     *
-     * @param tempdir 临时目录
-     * @param tplFilename 模板文件名
-     * @return
-     */
-    public abstract String compile(String tempdir, String tplName);
-
-    /**
-     *
-     * @param service 当前上下文
-     * @param tempFilename
-     * @return
-     */
-    public abstract void render(ActionContext service, String tmpName);
     
     /**
-     *
+     * 创建新视图上下文的工厂方法。
+     * @param context
+     * @return 
+     */
+    public abstract ViewContext createContext(HttpContext context);
+    
+    /**
+     * 解释并执行OTPL视图。
      * @param service 当前上下文
      * @param tempFilename
      * @return
      */
-    public abstract void render(ActionContext service);
+    public abstract void render(ViewContext service);
 
 }

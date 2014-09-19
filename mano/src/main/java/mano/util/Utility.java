@@ -14,6 +14,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -72,7 +74,7 @@ public class Utility {
         return sb.toString();
     }
 
-    public static void main(String[] args) {
+    public static void mainxxxx(String[] args) {
         Mano.getProperties().setProperty("server.dir", "{user.dir}/..");
         Mano.getProperties().setProperty("server.config", "{server.dir}/conf/server.xml");
         Utility.prepareProperties(Mano.getProperties());
@@ -80,8 +82,20 @@ public class Utility {
         int x = 0;
     }
 
+    @Deprecated
     public static Path combinePath(String first, String... more) {
-        if (more.length != 0) {
+        return toPath(first, more);
+    }
+
+    /**
+     * 转换为一个路径。
+     *
+     * @param first
+     * @param more
+     * @return
+     */
+    public static Path toPath(String first, String... more) {
+        if (more != null && more.length != 0) {
             ArrayList<String> tmp = new ArrayList<>(more.length);
             for (String s : more) {
                 if (s == null || "".equals(s.trim()) || "\\".equals(s.trim()) || "/".equals(s.trim())) {
@@ -89,17 +103,17 @@ public class Utility {
                 }
                 tmp.add(s.trim());
             }
-            if (!tmp.isEmpty()) {
-                if (first == null || "".equals(first.trim()) || "\\".equals(first.trim()) || "/".equals(first.trim())) {
-                    first = tmp.get(0);
-                    tmp.remove(0);
-                }
+
+            if (!tmp.isEmpty() && (first == null || "".equals(first.trim()) || "\\".equals(first.trim()) || "/".equals(first.trim()))) {
+                first = tmp.get(0);
+                tmp.remove(0);
             }
 
             more = tmp.toArray(new String[0]);
         }
 
-        return Paths.get(first, more);
+        return Paths.get(first, more).normalize();
+
     }
 
     //http://blog.sina.com.cn/s/blog_7a35101201012n0b.html
@@ -200,6 +214,12 @@ public class Utility {
             BOOLEAN = 6,
             DATETIME = 7;
 
+    /**
+     * 获取类型代码
+     *
+     * @param clazz
+     * @return
+     */
     public static int geTypeCode(Class<?> clazz) {
         switch (clazz.getName()) {
             case "long":
@@ -227,6 +247,14 @@ public class Utility {
         }
     }
 
+    /**
+     * 转换对象类型
+     *
+     * @param <T>
+     * @param clazz
+     * @param obj
+     * @return
+     */
     public static <T> T cast(Class<T> clazz, Object obj) {
         Object result;
         int code = geTypeCode(clazz);
@@ -248,7 +276,14 @@ public class Utility {
     }
 
     public static double toDouble(Object obj) {
+        if (obj == null) {
+            throw new java.lang.IllegalArgumentException("null is not a valid number.");
+        }
         return Double.parseDouble(obj.toString());
+    }
+
+    public static long toLong(Object obj) {
+        return Long.parseLong(obj.toString());
     }
 
     public static Object asNumber(int type, double obj) {
@@ -269,77 +304,78 @@ public class Utility {
                 return obj;
         }
     }
-    
-    
+
     public static void copyFile(String src, String target) throws IOException {
-            copyFile(new File(src), new File(target));
+        copyFile(new File(src), new File(target));
+    }
+
+    public static void copyFile(File src, File target) throws IOException {
+        if (!src.exists() || !src.isFile()) {
+            throw new FileNotFoundException("源文件不存或不是文件：" + src);
         }
 
-        public static void copyFile(File src, File target) throws IOException {
-            if (!src.exists() || !src.isFile()) {
-                throw new FileNotFoundException("源文件不存或不是文件：" + src);
+        if (target.exists() && target.isFile()) {
+            target.delete();
+        }
+
+        File parent = target.getParentFile();
+        if (!parent.exists() || (parent.exists() && !parent.isDirectory())) {
+            parent.mkdirs();
+        }
+
+        target.createNewFile();
+
+        Files.copy(src.toPath(), target.toPath(), LinkOption.NOFOLLOW_LINKS);
+
+//        try (FileInputStream input = new FileInputStream(src)) {
+//            try (FileOutputStream out = new FileOutputStream(target)) {
+//                out.getChannel().transferFrom(input.getChannel(), 0, input.getChannel().size());
+//            }
+//        }
+    }
+
+    public static void copyFolder(String src, String target) throws IOException {
+        copyFolder(new File(src), new File(target));
+    }
+
+    public static void copyFolder(File src, File target) throws IOException {
+        if (!src.exists() || !src.isDirectory()) {
+            throw new FileNotFoundException("源目录不存在或不是目录：" + src);
+        }
+        if (!target.exists() || !target.isDirectory()) {
+            if (!target.mkdirs()) {
+                throw new IOException("创建目标目录失败：" + target);
             }
-
-            if (target.exists() && target.isFile()) {
-                target.delete();
+        }
+        for (File child : src.listFiles()) {
+            if (child.isDirectory()) {
+                copyFolder(src.toString() + "/" + child.getName(), target.toString() + "/" + child.getName());
+            } else if (child.isFile()) {
+                copyFile(src.toString() + "/" + child.getName(), target.toString() + "/" + child.getName());
             }
+        }
+    }
 
-            File parent = target.getParentFile();
-            if (!parent.exists() || (parent.exists() && !parent.isDirectory())) {
-                parent.mkdirs();
-            }
+    public static void deleteFile(String filename) {
+        new File(filename).delete();
+    }
 
-            target.createNewFile();
+    public static void deleteFolder(String filename) {
+        deleteFolder(new File(filename));
+    }
 
-            try (FileInputStream input = new FileInputStream(src)) {
-                try (FileOutputStream out = new FileOutputStream(target)) {
-                    out.getChannel().transferFrom(input.getChannel(), 0, input.getChannel().size());
+    public static void deleteFolder(File file) {
+        if (file.exists() && file.isDirectory()) {
+            for (File child : file.listFiles()) {
+                if (child.isFile()) {
+                    child.delete();
+                } else {
+                    deleteFolder(child);
                 }
             }
+            file.delete();
         }
 
-        public static void copyFolder(String src, String target) throws IOException {
-            copyFolder(new File(src), new File(target));
-        }
-
-        public static void copyFolder(File src, File target) throws IOException {
-            if (!src.exists() || !src.isDirectory()) {
-                throw new FileNotFoundException("源目录不存在或不是目录：" + src);
-            }
-            if (!target.exists() || !target.isDirectory()) {
-                if (!target.mkdirs()) {
-                    throw new IOException("创建目标目录失败：" + target);
-                }
-            }
-            for (File child : src.listFiles()) {
-                if (child.isDirectory()) {
-                    copyFolder(src.toString() + "/" + child.getName(), target.toString() + "/" + child.getName());
-                } else if (child.isFile()) {
-                    copyFile(src.toString() + "/" + child.getName(), target.toString() + "/" + child.getName());
-                }
-            }
-        }
-
-        public static void deleteFile(String filename) {
-            new File(filename).delete();
-        }
-
-        public static void deleteFolder(String filename) {
-            deleteFolder(new File(filename));
-        }
-
-        public static void deleteFolder(File file) {
-            if (file.exists() && file.isDirectory()) {
-                for (File child : file.listFiles()) {
-                    if (child.isFile()) {
-                        child.delete();
-                    } else {
-                        deleteFolder(child);
-                    }
-                }
-                file.delete();
-            }
-
-        }
+    }
 
 }

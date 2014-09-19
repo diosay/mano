@@ -25,18 +25,18 @@ public class ViewResult implements ActionResult {
     }
     
     @Override
-    public void execute(ActionContext service) {
+    public void execute(ViewContext context) {
         if (engine == null) {
-            service.getContext().getResponse().write("this view engine not found.");
-            return;//throws error
+            context.getContext().getResponse().write("this view engine not found.");
+            return;
         }
         
-        String path = service.getPath();
+        String path = context.getPath();
         if (path == null || "".equals(path)) {
-            path = service.getController() + "/" + service.getAction() + ".html";
+            path = "~/"+context.getController() + "/" + context.getAction() + ".html";
         }
-        service.setPath(path);
-        engine.render(service);
+        context.setPath(path);
+        engine.render(context);
     }
     
 }

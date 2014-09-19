@@ -13,13 +13,24 @@ import java.util.Set;
 import mano.ContextClassLoader;
 
 /**
+ * 全局的服务管理器。
  *
  * @author jun <jun@diosay.com>
  */
-public class ServiceManager implements ServiceContainer {
+public final class ServiceManager implements ServiceContainer {
 
     private HashMap<String, Service> services = new HashMap<>();
     private ContextClassLoader classLoader;
+    private static final ServiceManager instance;
+
+    private ServiceManager() {
+        //System.setSecurityManager(new ServiceSecurityManager());
+    }
+
+    static {
+        instance = new ServiceManager(); //初始化实例
+    }
+
     @Override
     public Service getService(String serviceName) {
         if (serviceName != null && services.containsKey(serviceName)) {
@@ -28,20 +39,15 @@ public class ServiceManager implements ServiceContainer {
         return null;
     }
 
-    private static ServiceManager instance;
-
-    static {
-        instance = new ServiceManager();
-    }
-
     public static ServiceManager getInstance() {
         return instance;
     }
-    
-    public void setLoader(ContextClassLoader loader){
-        classLoader=loader;
+
+    public void setLoader(ContextClassLoader loader) {
+        classLoader = loader;
     }
-    public ContextClassLoader getLoader(){
+
+    public ContextClassLoader getLoader() {
         return classLoader;
     }
 

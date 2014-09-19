@@ -19,7 +19,6 @@ import mano.service.ServiceProvider;
 import mano.util.NameValueCollection;
 import mano.util.ThreadPool;
 import mano.util.Utility;
-import mano.util.logging.LogProvider;
 import mano.util.logging.LogService;
 import mano.util.logging.Logger;
 import mano.util.xml.XmlException;
@@ -78,9 +77,9 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
 
     @java.lang.Deprecated
     private void init() throws FileNotFoundException {
-        bootstrapPath = Utility.combinePath(System.getProperty("user.dir")).getParent().toString();
+        bootstrapPath = Utility.toPath(System.getProperty("user.dir")).getParent().toString();
         loader = this;
-        loader.register(Utility.combinePath(bootstrapPath, "lib").toString());
+        loader.register(Utility.toPath(bootstrapPath, "lib").toString());
     }
 
     /**
@@ -95,7 +94,7 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
 
         File cfile;
         if (configPath == null) {
-            cfile = Utility.combinePath(Utility.combinePath(Mano.getProperty("user.dir")).getParent().toString(), "conf/server.xml").toFile();
+            cfile = Utility.toPath(Utility.toPath(Mano.getProperty("user.dir")).getParent().toString(), "conf/server.xml").toFile();
         } else {
             cfile = new File(configPath);
         }
@@ -133,12 +132,12 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
             if (Mano.getProperties().containsKey("server.dir")) {
                 Mano.setProperty("server.dir", Utility.getAndReplaceMarkup("server.dir", Mano.getProperties(), System.getProperties()));
             } else {
-                Mano.setProperty("server.dir", Utility.combinePath(Mano.getProperty("user.dir")).getParent().toString());
+                Mano.setProperty("server.dir", Utility.toPath(Mano.getProperty("user.dir")).getParent().toString());
             }
         }
 
         //加载依赖
-        register(Utility.combinePath(Mano.getProperty("server.dir"), "lib").toString());
+        register(Utility.toPath(Mano.getProperty("server.dir"), "lib").toString());
 
         nodes = helper.selectNodes(root, "dependency/path");
         String[] arr;
@@ -148,9 +147,9 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
                 try {
                     s = attrs.getNamedItem("value").getNodeValue().trim();
                     if (s.startsWith("~/") || s.startsWith("~\\")) {
-                        s = Utility.combinePath(Mano.getProperty("server.dir"), s.substring(2)).toString();
+                        s = Utility.toPath(Mano.getProperty("server.dir"), s.substring(2)).toString();
                     } else if (s.startsWith("/") || s.startsWith("\\")) {
-                        s = Utility.combinePath(Mano.getProperty("server.dir"), s.substring(1)).toString();
+                        s = Utility.toPath(Mano.getProperty("server.dir"), s.substring(1)).toString();
                     }
                     this.register(s);
                 } catch (Throwable ex) {
@@ -274,6 +273,36 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
         }
     }
 
+    private void debugStart(String configFile, String serverDir) {
+
+        this.getLogger().info("Starting server.");
+        try {
+
+            configure(configFile, serverDir);
+
+            if (services.isEmpty()) {
+                this.getLogger().fatal("No service running.");
+                System.exit(0);
+            } else {
+                services.values().stream().forEach((service) -> {
+                    ThreadPool.execute(service);
+                });
+                this.getLogger().info("server is started.");
+
+            }
+
+            this.loop();
+
+        } catch (Exception ex) {
+            this.getLogger().fatal(ex);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ex1) {
+            }
+            System.exit(0);
+        }
+    }
+
     public void stop() {
         this.getLogger().info("server has stopped.");
         try {
@@ -285,10 +314,10 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
 
     public static void main(String[] args) {
         Bootstrap server = new Bootstrap();
-//        Mano.setProperty("manoserver.testing.test_webapp.config_file", "E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\src\\main\\webapp");
-//        Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", "E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\target\\build\\lib");
-//        server.start("E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\src\\resources\\conf\\server.xml", "E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\target\\build");
-        server.start(null, null);
+        Mano.setProperty("manoserver.testing.test_webapp.config_file", "E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\src\\main\\webapp");
+        Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", "E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\target\\build\\lib");
+        server.start("E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\src\\resources\\conf\\server.xml", "E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\target\\build");
+        //server.start(null, null);
         server.loop();
     }
 

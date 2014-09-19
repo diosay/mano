@@ -84,7 +84,7 @@ public class WebApplicationStartupInfo {
                 }
 
                 if (file.startsWith("~/") || file.startsWith("~\\")) {
-                    files.add(Utility.combinePath(serverPath, file.substring(1)).toString());
+                    files.add(Utility.toPath(serverPath, file.substring(1)).toString());
                 } else {
                     files.add(file);
                 }
@@ -97,7 +97,7 @@ public class WebApplicationStartupInfo {
                 }
 
                 if (file.startsWith("~/") || file.startsWith("~\\")) {
-                    files.add(Utility.combinePath(serverPath, file.substring(1)).toString());
+                    files.add(Utility.toPath(serverPath, file.substring(1)).toString());
                 } else {
                     files.add(file);
                 }
@@ -134,7 +134,7 @@ public class WebApplicationStartupInfo {
             String _basedir = this.rootdir;
 
             if (_basedir.startsWith("~/") || _basedir.startsWith("~\\")) {
-                _basedir = Utility.combinePath(this.serverPath, _basedir.substring(1)).toString();
+                _basedir = Utility.toPath(this.serverPath, _basedir.substring(1)).toString();
             }
 
             final String realbasedir = _basedir;

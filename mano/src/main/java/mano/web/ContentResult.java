@@ -18,7 +18,7 @@ public class ContentResult implements  ActionResult{
         this.content=s;
     }
     @Override
-    public void execute(ActionContext service) {
+    public void execute(ViewContext service) {
         if(this.content!=null && !service.getContext().isCompleted()){
             service.getContext().getResponse().charset("utf-8");
             service.getContext().getResponse().write(this.content);

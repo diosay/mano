@@ -19,12 +19,12 @@ public interface ActionFilter {
      * @param context
      * @return 返回 false 则必须在该过滤器中处理该Action，因为它将不在继续处理。否则返回true。
      */
-    boolean onActionExecuting(ActionContext context);
+    boolean onActionExecuting(ViewContext context);
     
     /**
      * 当执行Action之后调用。
      * @param context
      * @return 返回 false 则必须在该过滤器中处理该Action，因为它将不在继续处理。否则返回true。
      */
-    boolean onActionExecuted(ActionContext context);
+    boolean onActionExecuted(ViewContext context);
 }

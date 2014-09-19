@@ -7,12 +7,14 @@
  */
 package mano.web;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Properties;
 import java.util.Set;
 import mano.ContextClassLoader;
+import mano.Mano;
 import mano.PropertyContext;
 import mano.http.HttpContext;
 import mano.http.HttpException;
@@ -23,16 +25,16 @@ import mano.util.logging.Logger;
 
 /**
  * 定义 Web 应用程序中的所有应用程序对象通用的方法、属性和事件。
+ *
  * @author jun <jun@diosay.com>
  */
 public class WebApplication extends PropertyContext {
 
-    
     private Set<HttpModule> modules;
     private ContextClassLoader loader;
     private WebApplicationStartupInfo startupInfo;
     private final HashMap<String, Object> items = new HashMap<>();
-    
+
     public ContextClassLoader getLoader() {
         return loader;
     }
@@ -43,8 +45,9 @@ public class WebApplication extends PropertyContext {
 
     /**
      * 初始化应用程序。
+     *
      * @param info
-     * @param l 
+     * @param l
      */
     final void init(WebApplicationStartupInfo info, ContextClassLoader l) {
         startupInfo = info;
@@ -78,7 +81,7 @@ public class WebApplication extends PropertyContext {
             modules.clear();
         }
         items.clear();
-        loader=null;
+        loader = null;
     }
 
     /**
@@ -92,8 +95,9 @@ public class WebApplication extends PropertyContext {
 
     /**
      * 获取一个用于在应用程序各 HttpContext 之间交互的对象。
+     *
      * @param name
-     * @return 
+     * @return
      */
     public final Object get(String name) {
         if (items.containsKey(name)) {
@@ -104,16 +108,18 @@ public class WebApplication extends PropertyContext {
 
     /**
      * 设置一个用于在应用程序各 HttpContext 之间交互的对象。
+     *
      * @param name
-     * @param value 
+     * @param value
      */
     public final void set(String name, Object value) {
         items.put(name, value);
     }
 
     /**
-     * 任何实现HTTP Service 都须要调用该方法。 
-     * <p>基础代码，除非你清楚的知道你要做什么，否则不建议在用户代码中调用该方法。
+     * 任何实现HTTP Service 都须要调用该方法。
+     * <p>
+     * 基础代码，除非你清楚的知道你要做什么，否则不建议在用户代码中调用该方法。
      *
      * @param context
      */
@@ -122,13 +128,13 @@ public class WebApplication extends PropertyContext {
 
         ArrayList<String> paths = new ArrayList<>();
         String path = context.getRequest().url().getPath();
-        paths.add(Utility.combinePath(context.getServer().getVirtualPath(), path).toString());
+        paths.add(Utility.toPath(context.getServer().getVirtualPath(), path).toString());
         if (true) {
             for (String s : startupInfo.documents) {
-                paths.add(Utility.combinePath(context.getServer().getVirtualPath(), path, s).toString());
+                paths.add(Utility.toPath(context.getServer().getVirtualPath(), path, s).toString());
             }
-            paths.add(Utility.combinePath(context.getServer().getVirtualPath(), path, startupInfo.controller, startupInfo.action).toString());
-            paths.add(Utility.combinePath(context.getServer().getVirtualPath(), path, startupInfo.action).toString());
+            paths.add(Utility.toPath(context.getServer().getVirtualPath(), path, startupInfo.controller, startupInfo.action).toString());
+            paths.add(Utility.toPath(context.getServer().getVirtualPath(), path, startupInfo.action).toString());
         }
         for (String p : paths) {
             p = p.replace('\\', '/');
@@ -155,7 +161,10 @@ public class WebApplication extends PropertyContext {
         }
 
     }
-    protected void onInit(){}
+
+    protected void onInit() {
+    }
+
     protected void onError(HttpContext context, Throwable t) {
         HttpException ex;
         if (t instanceof HttpException) {
@@ -181,4 +190,45 @@ public class WebApplication extends PropertyContext {
     protected void onDestory() {
 
     }
+
+    protected static final class ServerStartupArgs {
+
+        public String serverDirectory;
+        public String webappDirectory;
+        public String libDirectory;
+    }
+
+    protected static final ServerStartupArgs createStartupArgs() {
+        return new ServerStartupArgs();
+    }
+
+    /**
+     * 启动调试服务
+     *
+     * @param args
+     */
+    protected static void startDebugServer(ServerStartupArgs args) {
+        try {
+
+            Mano.setProperty("manoserver.testing.test_webapp.config_file", args.webappDirectory);
+            Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", args.libDirectory);
+
+            ContextClassLoader loader = new ContextClassLoader(Logger.getLog());
+            loader.register(Utility.toPath(args.serverDirectory, "bin").toString());
+            loader.register(Utility.toPath(args.serverDirectory, "lib").toString());
+            Object instance = loader.newInstance("com.diosay.mano.server.Bootstrap");
+
+            Method startup = instance.getClass().getDeclaredMethod("debugStart", String.class, String.class);
+            if (startup == null) {
+
+            }
+            startup.setAccessible(true);
+
+            startup.invoke(instance, Utility.toPath(args.serverDirectory, "conf\\server.xml").toString(), args.serverDirectory);
+
+        } catch (Throwable ex) {
+            ex.printStackTrace(System.err);
+        }
+    }
+
 }

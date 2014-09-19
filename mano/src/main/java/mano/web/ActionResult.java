@@ -9,9 +9,13 @@
 package mano.web;
 
 /**
- *
+ * 表示一个执行结果。
  * @author jun <jun@diosay.com>
  */
 public interface ActionResult {
-    void execute(ActionContext service);
+    /**
+     * 执行
+     * @param context 
+     */
+    void execute(ViewContext context);
 }

@@ -236,13 +236,13 @@ public class HttpService extends Service implements ServiceProvider {
         if (this.getProperties().containsKey("config_file")) {
             this.getProperties().setProperty("config_file", Utility.getAndReplaceMarkup("config_file", this.getProperties(), Mano.getProperties(), System.getProperties()));
         } else {
-            this.getProperties().setProperty("config_file", Utility.combinePath(Mano.getProperty("server.dir"), "conf/server.xml").toString());
+            this.getProperties().setProperty("config_file", Utility.toPath(Mano.getProperty("server.dir"), "conf/server.xml").toString());
         }
 
         if (this.getProperties().containsKey("webapp.config_path")) {
             this.getProperties().setProperty("webapp.config_path", Utility.getAndReplaceMarkup("webapp.config_path", this.getProperties(), Mano.getProperties(), System.getProperties()));
         } else {
-            this.getProperties().setProperty("webapp.config_path", Utility.combinePath(Mano.getProperty("server.dir"), "conf/apps").toString());
+            this.getProperties().setProperty("webapp.config_path", Utility.toPath(Mano.getProperty("server.dir"), "conf/apps").toString());
         }
         if (this.getProperties().containsKey("service_name")) {
             this.name = this.getProperty("service_name");

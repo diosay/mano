@@ -18,8 +18,9 @@ public abstract class Service implements Runnable {
 
     private ServiceContainer container;
     private Properties properties;
-
+    
     protected Service() {
+        
         properties = new Properties();
         container = ServiceManager.getInstance();
     }
@@ -63,4 +64,6 @@ public abstract class Service implements Runnable {
     public String toString() {
         return this.getClass() + "[" + getServiceName() + "]";
     }
+    
+    
 }

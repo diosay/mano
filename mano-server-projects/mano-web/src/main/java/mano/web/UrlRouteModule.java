@@ -17,12 +17,14 @@ import java.lang.reflect.Method;
 import java.net.JarURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -30,13 +32,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import mano.caching.LruCacheProvider;
 import mano.http.HttpContext;
 import mano.http.HttpModule;
 import mano.util.Utility;
-import java.net.URLDecoder;
-import java.util.Properties;
 
 /**
+ * 通过 URL路由并调用 java 类和方法的模块。
  *
  * @author jun <jun@diosay.com>
  */
@@ -44,8 +46,10 @@ public class UrlRouteModule implements HttpModule {
 
     class JarScanner {
 
+        @Deprecated
         private String[] jarFiles;
 
+        @Deprecated
         public void scan(String path) {
             java.io.File dir = new java.io.File(path);
             dir.list(new FilenameFilter() {
@@ -199,7 +203,7 @@ public class UrlRouteModule implements HttpModule {
                     return;
                 }
                 try {
-                    clazz.getMethod("setService", ActionContext.class);
+                    clazz.getMethod("setService", ViewContext.class);
                 } catch (Throwable ex) {
                     return;
                 }
@@ -301,7 +305,7 @@ public class UrlRouteModule implements HttpModule {
                 route.patten = sb.toString();
                 route.controller = clazz.getSimpleName().toLowerCase();
                 route.action = method.getName().toLowerCase();
-                RouteTable.add(route);
+                routeTable.add(route);
             }
 
             //PathMapping()
@@ -311,7 +315,6 @@ public class UrlRouteModule implements HttpModule {
         }
 
     }
-    ViewEngine viewEngine;
 
     class Route {
 
@@ -324,9 +327,9 @@ public class UrlRouteModule implements HttpModule {
         String setServiceMethod;
         int httpMethod;
         Map<Integer, String> paramsMapping = new HashMap<>();
-        Class<?>[] filters;
+        ActionFilter[] filters;
 
-        public Class<?>[] getActionFilters() {
+        public ActionFilter[] getActionFilters() throws Exception {
             if (filters == null) {
                 ArrayList<Class<?>> tmp = new ArrayList<>();
                 FilterGroup group = call.getAnnotation(FilterGroup.class);
@@ -346,14 +349,76 @@ public class UrlRouteModule implements HttpModule {
                         }
                     }
                 }
-                filters = tmp.toArray(new Class<?>[0]);
+                ArrayList<ActionFilter> tmp2 = new ArrayList<>();
+                ActionFilter filter;
+                for (Class<?> clazz : tmp) {
+                    filter = (ActionFilter) app.getLoader().newInstance(clazz);
+                    tmp2.add(filter);
+                }
+
+                filters = tmp2.toArray(new ActionFilter[0]);
             }
             return filters;
         }
+        Pattern test = null;
+        Matcher matcher;
+
+        public boolean test(HttpContext context, String tryPath) {
+            if (test == null) {
+                try {
+                    test = Pattern.compile(patten, Pattern.CASE_INSENSITIVE);
+                } catch (Throwable ex) {
+                    if (java.lang.MANO_WEB_MACRO.DEBUG) {
+                        app.getLogger().debug("patten error:" + patten, ex);
+                    }
+                    return false;
+                }
+            }
+            matcher = test.matcher(tryPath);
+            if (matcher.matches()) {
+                //httpMethod
+                // && context.getRequest().
+                return true;
+            }
+
+            return false;
+        }
+        Method m;
+
+        private Method getMethod(Class<?> type) throws Exception {
+            try {
+                return type.getDeclaredMethod("setService", ViewContext.class);
+            } catch (NoSuchMethodException ex) {
+                if (type.getSuperclass() != null) {
+                    return getMethod(type.getSuperclass());
+                } else {
+                    throw ex;
+                }
+            } catch (SecurityException ex) {
+                throw ex;
+            }
+        }
+
+        public void setContext(Object instance, ViewContext context) throws Exception {
+            if (m == null) {
+                m = getMethod(clazz);
+                m.setAccessible(true);
+            }
+            m.invoke(instance, context);
+        }
     }
 
-    Set<Route> RouteTable = new LinkedHashSet<>();
-    WebApplication app;
+    private ViewEngine viewEngine;
+    private Set<Route> routeTable = new LinkedHashSet<>();
+    private WebApplication app;
+    private HashMap<Class<?>, ActionFilter> actionFilters = new HashMap<>();
+    private LruCacheProvider cache = new LruCacheProvider();
+
+    public void init(WebApplication application) {
+        //application.on("beginRequest",this.action);
+        //application.on("beginRequest",this.action);
+        //http://www.cnblogs.com/Ghost-Draw-Sign/articles/1428174.html
+    }
 
     @Override
     public void init(WebApplication app, Properties params) {
@@ -361,6 +426,15 @@ public class UrlRouteModule implements HttpModule {
         JarScanner js = new JarScanner();
         if (java.lang.MANO_WEB_MACRO.DEBUG) {
             app.getLogger().info("scanning controllers...");
+        }
+        for (URL url : app.getLoader().getURLs()) {
+            try {
+                app.getLogger().debug("URI:" + url.toString());
+            } catch (Throwable ex) {
+                if (java.lang.MANO_WEB_MACRO.DEBUG) {
+                    app.getLogger().debug("scanning jar:" + url, ex);
+                }
+            }
         }
         for (URL url : app.getLoader().getURLs()) {
             try {
@@ -374,14 +448,13 @@ public class UrlRouteModule implements HttpModule {
 
         try {
             viewEngine = (ViewEngine) app.getLoader().newInstance(params.getProperty("view.engine"));
-            viewEngine.setTempdir(Utility.combinePath(app.getApplicationPath(), "APP-DATA/tmp").toString());
-            viewEngine.setViewdir(Utility.combinePath(app.getApplicationPath(), "views").toString());
+            viewEngine.setTempdir(Utility.toPath(app.getApplicationPath(), "WEB-INF/tmp").toString());
+            viewEngine.setViewdir(Utility.toPath(app.getApplicationPath(), "views").toString());
         } catch (Throwable ex) {
             app.getLogger().error(ex);
         }
-    }
 
-    HashMap<Class<?>, ActionFilter> actionFilters = new HashMap<>();
+    }
 
     @Override
     public boolean handle(HttpContext context) {
@@ -390,89 +463,156 @@ public class UrlRouteModule implements HttpModule {
 
     @Override
     public boolean handle(HttpContext context, String tryPath) {
-        Pattern test = null;
-        Matcher matcher;
-
-        ActionContext rs = null;
-        for (Route route : RouteTable) {//TODO: 测试未考虑效率
-            try {
-                test = Pattern.compile(route.patten, Pattern.CASE_INSENSITIVE);
-            } catch (Throwable ex) {
-                if (java.lang.MANO_WEB_MACRO.DEBUG) {
-                    app.getLogger().debug("patten error:" + route.patten, ex);
-                }
-                continue;
-            }
-            matcher = test.matcher(tryPath);
-            app.getLogger().debug("matching: patten:" + route.patten + " url:" + tryPath);
-            if (matcher.matches()) {
-
-                Object[] params = new Object[route.call.getParameterCount()];
-                Class<?>[] types = route.call.getParameterTypes();
-                try {
-                    for (int i = 0; i < types.length; i++) {
-                        params[i] = Utility.cast(types[i], matcher.group(route.paramsMapping.get(i)));
-                    }
-                } catch (Throwable ex) {
-                    continue;
-                }
-
-                try {
-                    rs = new ActionContext(context);
-                    rs.setController(route.controller);
-                    rs.setAction(route.action);
-
-                    //初始化过滤程序
-                    ActionFilter filter;
-                    for (Class<?> clazz : route.getActionFilters()) {
-                        if (actionFilters.containsKey(clazz)) {
-                            filter = actionFilters.get(clazz);
-                        } else {
-                            filter = (ActionFilter) context.getApplication().getLoader().newInstance(clazz);
-                            actionFilters.put(clazz, filter);
-                        }
-                        if (!filter.onActionExecuting(rs)) {
-                            return true;
-                        }
-                    }
-
-                    Object obj = context.getApplication().getLoader().newInstance(route.clazz);
-                    Method m = Controller.class.getDeclaredMethod("setService", ActionContext.class);
-                    m.setAccessible(true);
-                    m.invoke(obj, rs);//
-
-                    route.call.invoke(obj, params);
-
-                    for (Class<?> clazz : route.getActionFilters()) {
-                        if (actionFilters.containsKey(clazz)) {
-                            filter = actionFilters.get(clazz);
-                        } else {
-                            filter = (ActionFilter) context.getApplication().getLoader().newInstance(clazz);
-                            actionFilters.put(clazz, filter);
-                        }
-                        if (!filter.onActionExecuted(rs)) {
-                            return true;
-                        }
-                    }
-
-                    break;
-                } catch (InvocationTargetException ex) {
-                    if (ex.getTargetException() != null) {
-                        context.getResponse().write(ex.getTargetException().getClass() + ":" + ex.getTargetException().getMessage());
-                        app.getLogger().debug("call route handler", ex.getTargetException());
-                    } else {
-                        context.getResponse().write(ex.getClass() + ":" + ex.getMessage());
-                        app.getLogger().debug("call route handler", ex);
-                    }
-                    return true;
-                } catch (Throwable ex) {
-                    context.getResponse().write(ex.getClass() + ":" + ex.getMessage());
-                    app.getLogger().debug("call route handler", ex);
-                    return true;
-                }
-            }
-
+        if (viewEngine == null) {
+            return false;
         }
+
+        String key = context.getRequest().method() + "//" + context.getRequest().url().toString();
+        Route route = null;
+        try {
+            if (cache.get(key) == null) {
+
+                for (Route r : routeTable) {
+                    app.getLogger().debug("matching: patten:" + r.patten + " url:" + tryPath);
+                    if (r.test(context, tryPath)) {
+                        route = r;
+                        cache.set(key, r, 1000 * 60 * 10, true, null);
+                        break;
+                    }
+                }
+            } else {
+                route = (Route) (cache.get(key).getValue());
+            }
+        } catch (Throwable ex) {
+            app.getLogger().debug("call route handler", ex);
+            return false;
+        }
+
+        if (route == null) {
+            return false;
+        }
+
+        Object[] params = new Object[route.call.getParameterCount()];
+        Class<?>[] types = route.call.getParameterTypes();
+        try {
+            for (int i = 0; i < types.length; i++) {
+                params[i] = Utility.cast(types[i], route.matcher.group(route.paramsMapping.get(i)));
+            }
+        } catch (Throwable ex) {
+            return false;
+        }
+        ViewContext rs = null;
+        try {
+            Object obj = context.getApplication().getLoader().newInstance(route.clazz);
+            rs = viewEngine.createContext(context);
+            rs.setController(route.controller);
+            rs.setAction(route.action);
+            route.setContext(obj, rs);
+            for (ActionFilter filter : route.getActionFilters()) {
+                filter.onActionExecuting(rs);
+            }
+            route.call.invoke(obj, params);
+            for (ActionFilter filter : route.getActionFilters()) {
+                filter.onActionExecuted(rs);
+            }
+        } catch (InvocationTargetException ex) {
+            if (ex.getTargetException() != null) {
+                context.getResponse().write(ex.getTargetException().getClass() + ":" + ex.getTargetException().getMessage());
+                app.getLogger().debug("handler error:", ex.getTargetException());
+            } else {
+                context.getResponse().write(ex.getClass() + ":" + ex.getMessage());
+                app.getLogger().debug("handler error:", ex);
+            }
+            return true;
+        } catch (Throwable ex) {
+            context.getResponse().write(ex.getClass() + ":" + ex.getMessage());
+            app.getLogger().debug("handler error:", ex);
+            return true;
+        }
+
+        /*Pattern test = null;
+         Matcher matcher;
+
+         key=fullpath+method
+         for (Route route : routeTable) {//TODO: 测试未考虑效率
+         try {
+         test = Pattern.compile(route.patten, Pattern.CASE_INSENSITIVE);
+         } catch (Throwable ex) {
+         if (java.lang.MANO_WEB_MACRO.DEBUG) {
+         app.getLogger().debug("patten error:" + route.patten, ex);
+         }
+         continue;
+         }
+         matcher = test.matcher(tryPath);
+         app.getLogger().debug("matching: patten:" + route.patten + " url:" + tryPath);
+         if (matcher.matches()) {
+
+         Object[] params = new Object[route.call.getParameterCount()];
+         Class<?>[] types = route.call.getParameterTypes();
+         try {
+         for (int i = 0; i < types.length; i++) {
+         params[i] = Utility.cast(types[i], matcher.group(route.paramsMapping.get(i)));
+         }
+         } catch (Throwable ex) {
+         continue;
+         }
+
+         try {
+         rs = viewEngine.createContext(context);
+         rs.setController(route.controller);
+         rs.setAction(route.action);
+
+         //初始化过滤程序
+         ActionFilter filter;
+         for (Class<?> clazz : route.getActionFilters()) {
+         if (actionFilters.containsKey(clazz)) {
+         filter = actionFilters.get(clazz);
+         } else {
+         filter = (ActionFilter) context.getApplication().getLoader().newInstance(clazz);
+         actionFilters.put(clazz, filter);
+         }
+         if (!filter.onActionExecuting(rs)) {
+         return true;
+         }
+         }
+
+         Object obj = context.getApplication().getLoader().newInstance(route.clazz);
+         Method m = Controller.class.getDeclaredMethod("setService", ViewContext.class);
+         m.setAccessible(true);
+         m.invoke(obj, rs);//
+
+         route.call.invoke(obj, params);
+
+         for (Class<?> clazz : route.getActionFilters()) {
+         if (actionFilters.containsKey(clazz)) {
+         filter = actionFilters.get(clazz);
+         } else {
+         filter = (ActionFilter) context.getApplication().getLoader().newInstance(clazz);
+         actionFilters.put(clazz, filter);
+         }
+         if (!filter.onActionExecuted(rs)) {
+         return true;
+         }
+         }
+
+         break;
+         } catch (InvocationTargetException ex) {
+         if (ex.getTargetException() != null) {
+         context.getResponse().write(ex.getTargetException().getClass() + ":" + ex.getTargetException().getMessage());
+         app.getLogger().debug("call route handler", ex.getTargetException());
+         } else {
+         context.getResponse().write(ex.getClass() + ":" + ex.getMessage());
+         app.getLogger().debug("call route handler", ex);
+         }
+         return true;
+         } catch (Throwable ex) {
+         context.getResponse().write(ex.getClass() + ":" + ex.getMessage());
+         app.getLogger().debug("call route handler", ex);
+         return true;
+         }
+         }
+
+         }*/
         if (rs == null) {
             return false;
         }
@@ -485,20 +625,6 @@ public class UrlRouteModule implements HttpModule {
         }
 
         result.execute(rs);
-
-        /*rs.setResult(new ViewResult().init(viewEngine));
-         //rs.setResult(new ContentResult("你好世界，我是jun!"));
-         //context.getResponse().write("hello");
-         ActionResult result = rs.getResult();
-         if (result != null) {
-         result.execute(rs);
-         //javax.tools.JavaCompiler compiler=javax.tools.ToolProvider.getSystemJavaCompiler();
-         //http://blog.csdn.net/menxu_work/article/details/9187027
-
-         }
-         if (!context.isCompleted()) {
-         context.getResponse().end();
-         }*/
         return true;
     }
 
@@ -506,7 +632,7 @@ public class UrlRouteModule implements HttpModule {
     public void dispose() {
         viewEngine = null;
         app = null;
-        RouteTable.clear();
+        routeTable.clear();
     }
 
 }
