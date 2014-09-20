@@ -7,17 +7,16 @@
  */
 package mano.http;
 
-import java.io.IOException;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 import mano.InvalidOperationException;
 import mano.Resettable;
-import mano.io.Buffer;
+
 import mano.net.ByteArrayBuffer;
 import mano.net.Channel;
 import mano.net.ChannelHandler;
@@ -187,7 +186,7 @@ class HttpRequestImpl extends HttpRequest implements HttpRequestAppender {
             _files = new NameValueCollection<>();
         }
         _files.put(file.getName(), file);
-        System.err.println("SIZE:" + file.getLength());
+        //System.err.println("SIZE:" + file.getLength());
     }
 
     private void loadPostData() {
@@ -252,7 +251,7 @@ class HttpRequestImpl extends HttpRequest implements HttpRequestAppender {
 
     @Override
     public boolean isConnected() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return this.connection.isOpen();
     }
 
     @Override
@@ -302,69 +301,4 @@ class HttpRequestImpl extends HttpRequest implements HttpRequestAppender {
     public String getBoundary() {
         return this._boundary;
     }
-
-    static class LoadExactDataHandlerxxxxxx extends ChannelHandler<HttpChannel, HttpRequestImpl> implements Resettable {
-
-        HttpRequestImpl request;
-        HttpEntityBodyHandler handler;
-        long remaining = 0;
-        Throwable error;
-
-        @Override
-        public void reset() {
-            handler = null;
-            request = null;
-            remaining = 0;
-            error = null;
-        }
-
-        @Override
-        protected void onRead(HttpChannel channel, int bytesRead, ByteArrayBuffer buffer, HttpRequestImpl token) {
-            token = token == null ? request : token;
-            int pos = buffer.position();
-            try {
-                handler.onRead(buffer, token);
-            } catch (Throwable ex) {
-                this.error = ex;
-                synchronized (token.postLoadFlag) {
-                    token.postLoadFlag.set(true);
-                    token.postLoadFlag.notify();
-                }
-                return;
-            }
-
-            int eat = buffer.position() - pos;
-            remaining -= eat;
-            if (remaining > 0) {
-                if (buffer.hasRemaining()) {
-                    buffer.compact();
-                } else {
-                    //抛弃未使用的数据？
-                    if (true) {
-                        remaining -= buffer.length();
-                    }
-                    buffer.reset();
-                }
-            }
-
-            if (remaining > 0) {
-                channel.read(this, token);
-            } else {
-                synchronized (token.postLoadFlag) {
-                    token.postLoadFlag.set(true);
-                    token.postLoadFlag.notify();
-                }
-            }
-        }
-
-        @Override
-        protected void onFailed(HttpChannel channel, Throwable exc) {
-            if (channel == null) {
-                error = exc;
-            } else {
-                channel.onFailed(this, exc);
-            }
-        }
-    }
-
 }

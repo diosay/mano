@@ -28,11 +28,6 @@ import mano.ContextClassLoader;
 import mano.DateTime;
 import mano.Mano;
 import mano.caching.CacheProvider;
-import mano.http.HttpConnection.FlushHandler;
-import mano.http.HttpConnection.ReceivedCompletionHandler;
-import mano.http.HttpConnection.ResolveRequestHeadersHandler;
-import mano.http.HttpConnection.ResolveRequestLineHandler;
-import mano.http.HttpConnection.SentCompletionHandler;
 //import mano.http.HttpRequestImpl.LoadExactDataHandler;
 import mano.io.BufferPool;
 import mano.io.ByteBufferPool;
@@ -65,62 +60,65 @@ import org.w3c.dom.NodeList;
  */
 public class HttpService extends Service implements ServiceProvider {
 
-    private ArrayList<String> documents;
-    private NameValueCollection<HttpModuleSettings> modules;
+    //private ArrayList<String> documents;
+    //private NameValueCollection<HttpModuleSettings> modules;
     private NameValueCollection<WebApplicationStartupInfo> appInfos;
     private NameValueCollection<ConnectionInfo> infos = new NameValueCollection<>();
-    private BufferPool _workBufferPool; //工作缓冲区池,4k
-    private BufferPool _tempBufferPool; //临时缓冲区池,64k
-    private ByteBufferPool _ioBufferPool; //io缓冲区池,512b
+    //private BufferPool _workBufferPool; //工作缓冲区池,4k
+    //private BufferPool _tempBufferPool; //临时缓冲区池,64k
+    //private ByteBufferPool _ioBufferPool; //io缓冲区池,512b
     //private Pool<HttpTask> _factory;
-    private String bootstrapPath;
-    private String configPath;
+    //private String bootstrapPath;
+    //private String configPath;
     private ContextClassLoader loader;
     private Logger logger;
     private String name;
-    Pool<ReceivedCompletionHandler> receivedCompletionHandlerPool;
-    Pool<SentCompletionHandler> sentCompletionHandlerPool;
-    Pool<ResolveRequestLineHandler> resolveRequestLineHandlerPool;
-    Pool<ResolveRequestHeadersHandler> resolveRequestHeadersHandlerHandlerPool;
-    Pool<HttpConnection> connectionPool;
-    Pool<FlushHandler> flushHandlerPool;
+    //Pool<ReceivedCompletionHandler> receivedCompletionHandlerPool;
+    //Pool<SentCompletionHandler> sentCompletionHandlerPool;
+    //Pool<ResolveRequestLineHandler> resolveRequestLineHandlerPool;
+    //Pool<ResolveRequestHeadersHandler> resolveRequestHeadersHandlerHandlerPool;
+    //Pool<HttpConnection> connectionPool;
+    //Pool<FlushHandler> flushHandlerPool;
     //Pool<LoadExactDataHandler> loadExactDataHandlerPool;
-    Pool<mano.net.ByteArrayBuffer> bufferPool;
+    Pool<ByteArrayBuffer> bufferPool;
+    final ArrayList<AsynchronousServerSocketChannel> listeners = new ArrayList<>();
+    final ArrayList<HttpChannel> connections = new ArrayList<>();
+    final AtomicInteger cos = new AtomicInteger(0);
 
     public HttpService() {
         //_factory = new Pool<>(() -> new HttpTask(this));
-        receivedCompletionHandlerPool = new CachedObjectPool<>(() -> {
-            return new ReceivedCompletionHandler();
-        }, 4, 128);
-        sentCompletionHandlerPool = new CachedObjectPool<>(() -> {
-            return new SentCompletionHandler();
-        }, 4, 128);
-        resolveRequestLineHandlerPool = new CachedObjectPool<>(() -> {
-            return new ResolveRequestLineHandler();
-        }, 4, 128);
-        resolveRequestHeadersHandlerHandlerPool = new CachedObjectPool<>(() -> {
-            return new ResolveRequestHeadersHandler();
-        }, 4, 128);
-        connectionPool = new CachedObjectPool<>(() -> {
-            return new HttpConnection();
-        }, 4, 128);
-        flushHandlerPool = new CachedObjectPool<>(() -> {
-            return new FlushHandler();
-        }, 4, 128);
-        
+//        receivedCompletionHandlerPool = new CachedObjectPool<>(() -> {
+//            return new ReceivedCompletionHandler();
+//        }, 4, 128);
+//        sentCompletionHandlerPool = new CachedObjectPool<>(() -> {
+//            return new SentCompletionHandler();
+//        }, 4, 128);
+//        resolveRequestLineHandlerPool = new CachedObjectPool<>(() -> {
+//            return new ResolveRequestLineHandler();
+//        }, 4, 128);
+//        resolveRequestHeadersHandlerHandlerPool = new CachedObjectPool<>(() -> {
+//            return new ResolveRequestHeadersHandler();
+//        }, 4, 128);
+//        connectionPool = new CachedObjectPool<>(() -> {
+//            return new HttpConnection();
+//        }, 4, 128);
+//        flushHandlerPool = new CachedObjectPool<>(() -> {
+//            return new FlushHandler();
+//        }, 4, 128);
+
     }
 
-    BufferPool workBufferPool() {
-        return _workBufferPool;
-    }
-
-    BufferPool tempBufferPool() {
-        return _tempBufferPool;
-    }
-
-    ByteBufferPool ioBufferPool() {
-        return _ioBufferPool;
-    }
+//    BufferPool workBufferPool() {
+//        return _workBufferPool;
+//    }
+//
+//    BufferPool tempBufferPool() {
+//        return _tempBufferPool;
+//    }
+//
+//    ByteBufferPool ioBufferPool() {
+//        return _ioBufferPool;
+//    }
 
     /*Task newTask() {
      return _factory.get();
@@ -137,44 +135,44 @@ public class HttpService extends Service implements ServiceProvider {
     public void stop() {
         super.stop(); //To change body of generated methods, choose Tools | Templates.
     }
+    /*
+     @Deprecated
+     @Override
+     public void init(ServiceContainer container, Map<String, String> params) {
+     super.init(container, null);
+     ServiceProvider provider = (ServiceProvider) container;
 
-    @Deprecated
-    @Override
-    public void init(ServiceContainer container, Map<String, String> params) {
-        super.init(container, null);
-        ServiceProvider provider = (ServiceProvider) container;
+     loader = provider.getService(ContextClassLoader.class);
+     logger = loader.getLogger();
 
-        loader = provider.getService(ContextClassLoader.class);
-        logger = loader.getLogger();
+     if (params != null) {
+     params.entrySet().stream().forEach(item -> {
+     parseParam(item.getKey(), item.getValue());
+     });
+     }
 
-        if (params != null) {
-            params.entrySet().stream().forEach(item -> {
-                parseParam(item.getKey(), item.getValue());
-            });
-        }
+     try {
+     this.configure();
+     } catch (Exception ex) {
+     logger.error("", ex);
+     }
+     }
 
-        try {
-            this.configure();
-        } catch (Exception ex) {
-            logger.error("", ex);
-        }
-    }
+     @Deprecated
+     private void init2() {
+     loader = ServiceManager.getInstance().getLoader();
+     logger = loader.getLogger();
 
-    @Deprecated
-    private void init2() {
-        loader = ServiceManager.getInstance().getLoader();
-        logger = loader.getLogger();
+     this.getProperties().entrySet().stream().forEach(item -> {
+     parseParam(item.getKey().toString(), item.getValue());
+     });
 
-        this.getProperties().entrySet().stream().forEach(item -> {
-            parseParam(item.getKey().toString(), item.getValue());
-        });
-
-        try {
-            this.configure();
-        } catch (Exception ex) {
-            logger.error("", ex);
-        }
-    }
+     try {
+     this.configure();
+     } catch (Exception ex) {
+     logger.error("", ex);
+     }
+     }*/
 
     private void error(Throwable ex) {
         if (logger != null) {
@@ -554,7 +552,12 @@ public class HttpService extends Service implements ServiceProvider {
 
             WebApplication app = info.getInstance();
             if (app != null) {
-
+                if (req.headers().containsKey("Connection")) {
+                    HttpHeader header = req.headers().get("Connection");
+                    if (header != null && "keep-alive".equalsIgnoreCase(header.value())) {
+                        req.connection.keepAlive = false;
+                    }
+                }
                 HttpContextImpl context = new HttpContextImpl(req, new HttpResponseImpl(req.connection));
                 context.server = info.getServerInstance();
                 context.application = app;
@@ -564,7 +567,7 @@ public class HttpService extends Service implements ServiceProvider {
                 if (svc != null && svc instanceof ServiceProvider) {
                     CacheProvider provider = ((ServiceProvider) svc).getService(CacheProvider.class);//TODO: 指定实例服务
                     if (provider != null) {
-                        logger.error("====." + provider);
+                        //logger.error("====." + provider);
                         String sid = req.getCookie().get(HttpSession.COOKIE_KEY);
                         context.session = HttpSession.getSession(sid, provider);
 
@@ -590,32 +593,35 @@ public class HttpService extends Service implements ServiceProvider {
         return false;
     }
 
-    final ArrayList<AsynchronousServerSocketChannel> listeners = new ArrayList<>();
-    final ArrayList<HttpChannel> connections = new ArrayList<>();
-    final AtomicInteger cos = new AtomicInteger();
-
     void onConnected(AsynchronousSocketChannel chan) {
-        HttpChannel conn = new HttpChannel();
-        connections.add(conn);
-        cos.addAndGet(1);
+        synchronized (cos) {
+            HttpChannel conn = new HttpChannel();
+            connections.add(conn);
+            cos.addAndGet(1);
 
-        conn.open(chan, new ByteArrayBuffer(1024 * 4));
+            conn.open(chan, bufferPool.get());
 
-        //HttpConnection conn = new HttpConnection();
-        conn.service = this;
-        //conn.buffer = this.workBufferPool().get();
-        //conn.open(chan);
-        logger.info("current connections count:" + cos.get());
+            //HttpConnection conn = new HttpConnection();
+            conn.service = this;
+            //conn.buffer = this.workBufferPool().get();
+            //conn.open(chan);
+            logger.info("current connections count:" + cos.get());
+        }
     }
 
     void onClosed(HttpChannel conn) {
         synchronized (cos) {
-            connections.remove(conn);
-            cos.addAndGet(-1);
+            if (connections.contains(conn)) {
+                connections.remove(conn);
+                cos.addAndGet(-1);
+            }
+            bufferPool.put(conn.getBuffer());
+
             cos.notify();
+            //this.connectionPool.put(conn);
+            logger.info("current connections count:" + cos.get());
         }
-        //this.connectionPool.put(conn);
-        logger.info("current connections count:" + cos.get());
+
     }
 
     //启动服务

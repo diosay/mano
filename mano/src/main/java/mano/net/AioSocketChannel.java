@@ -119,7 +119,7 @@ public abstract class AioSocketChannel implements Channel {
     @Override
     public void write(Buffer buffer) {
         if (buffer == null || buffer.equals(this.getBuffer())) {
-            throw new java.lang.IllegalArgumentException("buffer");
+            throw new IllegalArgumentException("buffer");
         }
         paddings.offer(buffer);
         this.flush();
@@ -192,7 +192,7 @@ public abstract class AioSocketChannel implements Channel {
 
     public boolean isOpen() {
         if (channel == null) {
-            return true;
+            return false;
         }
         return channel.isOpen();
     }

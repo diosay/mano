@@ -5,16 +5,13 @@
  */
 package mano.http;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.charset.Charset;
 import mano.DateTime;
 import mano.net.AioSocketChannel;
 import mano.net.Buffer;
 import mano.net.ByteArrayBuffer;
-import mano.net.Channel;
 import mano.net.ChannelHandler;
-import mano.util.ObjectFactory;
 import mano.util.Utility;
 
 /**
@@ -22,11 +19,16 @@ import mano.util.Utility;
  * @author jun <jun@diosay.com>
  */
 public class HttpChannel extends AioSocketChannel {
-    
+
     Charset charset = Charset.forName("utf-8");
     private ParseHeader parseHeader = new ParseHeader();
     HttpService service;
     boolean sentError;
+    boolean keepAlive;
+    
+    public boolean keepAlive(){
+        return keepAlive;
+    }
     
     @Override
     public void open(AsynchronousSocketChannel chan, ByteArrayBuffer buf) {
@@ -34,7 +36,7 @@ public class HttpChannel extends AioSocketChannel {
         super.open(chan, buf);
         this.read(parseHeader, null);
     }
-    
+
     @Override
     public void onFailed(Object sender, Throwable exc) {
         service.getLogger().debug(exc);
@@ -47,7 +49,7 @@ public class HttpChannel extends AioSocketChannel {
                 } else {
                     ex = new HttpException(HttpStatus.InternalServerError, exc);
                 }
-                
+
                 byte[] response = String.format("<html><head><title>HTTP %s Error</title></head><body>%s</body></html>", ex.getHttpCode(), ex.getMessage()).getBytes(charset);
                 StringBuilder sb = new StringBuilder("HTTP/1.1 ");
                 sb.append(ex.getHttpCode()).append(" ").append(HttpStatus.getKnowDescription(ex.getHttpCode())).append("\r\n");
@@ -55,7 +57,7 @@ public class HttpChannel extends AioSocketChannel {
                 sb.append("Connection:close\r\n");
                 sb.append("Date:").append(DateTime.now().toGMTString()).append("\r\n");
                 sb.append("\r\n");
-                
+
                 byte[] bytes = sb.toString().getBytes();
                 this.write(new ByteArrayBuffer(bytes, 0, bytes.length));
                 this.write(new ByteArrayBuffer(response, 0, response.length));
@@ -67,21 +69,35 @@ public class HttpChannel extends AioSocketChannel {
             exc.printStackTrace();
         }
     }
-    
+
     @Override
     public void onFlush(Buffer buffer, long bytesTransferred) {
-        
+        if(buffer instanceof EndResponseBuffer){
+            if(keepAlive && this.isOpen()){
+                this.getBuffer().reset();
+                this.read(parseHeader, null);
+            }else{
+                this.close(false);
+            }
+        }
     }
-    
+
     @Override
     public void onClosed() {
-    service.onClosed(this);
+        service.onClosed(this);
     }
-    
+
+    /**
+     * 结束本次响应。
+     */
+    public void endResponse() {
+        this.write(new EndResponseBuffer());
+    }
+
     private static class ParseHeader extends ChannelHandler<HttpChannel, HttpRequestImpl> {
-        
+
         boolean requestline;
-        
+
         @Override
         protected void onRead(HttpChannel channel, int bytesRead, ByteArrayBuffer buffer, HttpRequestImpl request) {
             String line;
@@ -92,7 +108,7 @@ public class HttpChannel extends AioSocketChannel {
                     System.out.println(line);
                 }
                 if (!requestline) {
-                    
+
                     String[] arr = Utility.split(line, " ", true);
                     if (arr.length != 3) {
                         onFailed(channel, new HttpException(HttpStatus.BadRequest, "Bad Request(Incorrect Request Line)"));
@@ -118,23 +134,31 @@ public class HttpChannel extends AioSocketChannel {
                 }
             }
             if (!done) {
-                channel.read(this, request);this.notify();
+                channel.read(this, request);
+                //this.notify();
             } else {
-//                HttpResponseImpl rsp=new HttpResponseImpl(channel);
-//                rsp.write("hello");
-//                rsp.end();
+                try {
+                    request.hasPostData();
+                    
+                } catch (HttpException ex) {
+                    onFailed(channel, ex);
+                    return;
+                }
                 if (channel.service == null || !channel.service.processRequest(request)) {
                     onFailed(channel, new HttpException(HttpStatus.BadRequest, "Bad Request(Invalid Hostname)"));
                 }
             }
         }
-        
+
         @Override
         protected void onFailed(HttpChannel channel, Throwable exc) {
             channel.onFailed(this, exc);
         }
     }
-    
+
+    private static class EndResponseBuffer implements Buffer {
+    }
+
 }
 
 //    class Listener {

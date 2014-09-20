@@ -19,7 +19,6 @@ import mano.http.HttpCookieCollection.CookieEntry;
 import mano.net.ByteArrayBuffer;
 import mano.net.DBuffer;
 import mano.net.FileRegin;
-import mano.web.HttpSession;
 
 /**
  *
@@ -78,7 +77,7 @@ final class HttpResponseImpl extends HttpResponse {
             }
 
             if (!headers.containsKey("Connection")) {
-                this.setHeader("Connection", "keep-alive");
+                this.setHeader("Connection", this.connection.keepAlive() ? "keep-alive" : "close");
             }
 
             if (!headers.containsKey("Content-Type")) {
@@ -220,6 +219,7 @@ final class HttpResponseImpl extends HttpResponse {
     public synchronized void end() {
         this._endFlush = true;
         this.flush();
+        this.connection.endResponse();
         this.connection.close(false);
     }
 
