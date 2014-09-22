@@ -73,7 +73,7 @@ public class HttpChannel extends AioSocketChannel {
     @Override
     public void onFlush(Buffer buffer, long bytesTransferred) {
         if(buffer instanceof EndResponseBuffer){
-            if(keepAlive && this.isOpen()){
+            if(false){//keepAlive && this.isOpen()
                 this.getBuffer().reset();
                 this.read(parseHeader, null);
             }else{
@@ -96,7 +96,7 @@ public class HttpChannel extends AioSocketChannel {
 
     private static class ParseHeader extends ChannelHandler<HttpChannel, HttpRequestImpl> {
 
-        boolean requestline;
+        //boolean requestline;
 
         @Override
         protected void onRead(HttpChannel channel, int bytesRead, ByteArrayBuffer buffer, HttpRequestImpl request) {
@@ -107,7 +107,7 @@ public class HttpChannel extends AioSocketChannel {
                 if (MANO_WEB_MACRO.DEBUG) {
                     System.out.println(line);
                 }
-                if (!requestline) {
+                if (request==null || request.method==null) {
 
                     String[] arr = Utility.split(line, " ", true);
                     if (arr.length != 3) {
@@ -120,7 +120,7 @@ public class HttpChannel extends AioSocketChannel {
                     request.method = arr[0].trim();
                     request.rawUrl = arr[1].trim();
                     request.version = arr[2].trim();
-                    requestline = true;
+                    //requestline = true;
                 } else if ("".equals(line.trim())) {
                     done = true;
                     break;

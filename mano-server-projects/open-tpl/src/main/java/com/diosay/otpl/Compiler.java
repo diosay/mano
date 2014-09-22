@@ -701,7 +701,7 @@ public abstract class Compiler {
                 token.type = Token.COLON;
                 token.line = line;
                 list.add(token);
-            }else if ('|' == c) {
+            } else if ('|' == c) {
                 token = new Token();
                 token.type = Token.VL;
                 token.line = line;
@@ -822,9 +822,24 @@ public abstract class Compiler {
     protected void visit(Token token, ArrayList<OpCode> list) {
         switch (token.type) {
             case Token.ID: {
-                LoadVariable code = new LoadVariable();
-                code.setName(token.code);
-                list.add(code);
+                if ("null".equalsIgnoreCase(token.code)) {
+                    LoadConst code = new LoadConst();
+                    code.setValue(LoadConst.NULL);
+                    list.add(code);
+                } else if ("false".equalsIgnoreCase(token.code)) {
+                    LoadConst code = new LoadConst();
+                    code.setValue(LoadConst.FALSE);
+                    list.add(code);
+                }
+                if ("true".equalsIgnoreCase(token.code)) {
+                    LoadConst code = new LoadConst();
+                    code.setValue(LoadConst.TRUE);
+                    list.add(code);
+                } else {
+                    LoadVariable code = new LoadVariable();
+                    code.setName(token.code);
+                    list.add(code);
+                }
                 break;
             }
             case Token.LONG: {
@@ -866,7 +881,7 @@ public abstract class Compiler {
                             if (token.get(1).get(0).type == Token.ID) {
                                 int len = getCount(token.get(1).get(1));
                                 visit(token.get(1).get(1), list);
-                                list.add(new Callvri().setName("indexer").setArgLength(len+1));
+                                list.add(new Callvri().setName("indexer").setArgLength(len + 1));
                             } else {
                                 visit(token.get(1), list);
                             }
@@ -898,8 +913,8 @@ public abstract class Compiler {
                         //array 
                         //obj list.add(new LoadMember().setName(token.get(0).code).setArgLength(len));
                         list.add(new LoadVariable().setName(token.get(0).code));
-                        list.add(new Callvri().setName("indexer").setArgLength(len+1));
-                        
+                        list.add(new Callvri().setName("indexer").setArgLength(len + 1));
+
                         break;
                     case "add": {
                         visit(token.get(0), list);

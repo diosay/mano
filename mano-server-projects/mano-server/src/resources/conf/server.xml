@@ -53,6 +53,7 @@
                     <property name="ext:js">application/x-javascript</property>
                     <property name="ext:jpg">image/jpeg</property>
                     <property name="ext:png">image/png</property>
+                    <property name="ext:ico">image/x-icon</property>
                     <property name="ext:mp4">video/mp4</property>
                     <property name="ext:rar">application/octet-stream</property>
                 </add>

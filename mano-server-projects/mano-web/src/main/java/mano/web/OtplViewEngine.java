@@ -34,7 +34,7 @@ public class OtplViewEngine extends ViewEngine{
 
     class SimpleExecutionContext extends ViewContext implements ExecutionContext {
 
-        private HashMap<String, Object> items = new HashMap<>();
+        //private HashMap<String, Object> items = new HashMap<>();
         private Stack<Object> stack = new Stack<>();
         private HashMap<String, CodeLoader> loaders = new HashMap<>();
         
@@ -54,18 +54,18 @@ public class OtplViewEngine extends ViewEngine{
             //return "C:\\Users\\jun\\Desktop\\demo";
         }
 
-        @Override
-        public void set(String key, Object value) {
-            items.put(key, value);
-        }
-
-        @Override
-        public Object get(String key) {
-            if (items.containsKey(key)) {
-                return items.get(key);
-            }
-            return null;//TODO:报错？
-        }
+//        @Override
+//        public void set(String key, Object value) {
+//            items.put(key, value);
+//        }
+//
+//        @Override
+//        public Object get(String key) {
+//            if (items.containsKey(key)) {
+//                return items.get(key);
+//            }
+//            return null;//TODO:报错？
+//        }
 
         @Override
         public void push(Object value) {
@@ -194,7 +194,7 @@ public class OtplViewEngine extends ViewEngine{
                 System.arraycopy(args, 0, nargs, 0, args.length - 1);
                 return calls().indexer(args[args.length - 1], nargs);
             } else {
-                Object obj = items.get(funcName);
+                Object obj = get(funcName);
                 if (obj == null || !(obj instanceof Method)) {
                     throw new UnsupportedOperationException("函数未定义：" + funcName);
                 }

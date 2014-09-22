@@ -314,8 +314,17 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
 
     public static void main(String[] args) {
         Bootstrap server = new Bootstrap();
-//        Mano.setProperty("manoserver.testing.test_webapp.config_file", "E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\src\\main\\webapp");
-//        Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", "E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\target\\build\\lib");
+        
+//        String lib_path="E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\target\\build\\lib";
+//        String web_path="E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\src\\main\\webapp";
+//        
+//        //lib_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\target\\build\\lib";
+//        //web_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\src\\main\\webapp";
+//        
+//        
+//        
+//        Mano.setProperty("manoserver.testing.test_webapp.config_file", web_path);
+//        Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", lib_path);
 //        server.start("E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\src\\resources\\conf\\server.xml", "E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\target\\build");
         server.start(null, null);
         server.loop();

@@ -22,8 +22,8 @@ import mano.util.Utility;
 public class LoadConst extends OpCode {
 
     public static byte NULL = 0;
-    public static byte FALSE = 0;
-    public static byte TRUE = 0;
+    public static byte FALSE = 1;
+    public static byte TRUE = 2;
     private byte value;
 
     public LoadConst setValue(byte val) {
@@ -50,7 +50,7 @@ public class LoadConst extends OpCode {
         } else if (value == FALSE) {
             context.push(false);
         }
-        if (value == TRUE) {
+        else if (value == TRUE) {
             context.push(true);
         } else {
             throw new java.lang.RuntimeException("常量类型未定义:" + value);

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC "-//Hibernate/Hibernate Configuration DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+  <session-factory>
+    <property name="dialect">org.hibernate.dialect.MySQLDialect</property>
+    <property name="connection.driver_class">com.mysql.jdbc.Driver</property>
+    <property name="connection.url">jdbc:mysql://112.124.109.67/ecp</property>
+    <property name="connection.username">root</property>
+    <property name="connection.password">sql@sa</property>
+    <property name="show_sql">true</property>
+    <property name="current_session_context_class">thread</property>
+   
+         <mapping resource="com/ifcc/ecp/comm/models/CommDict.hbm.xml"/>
+  
+
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcAdmins.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcAppInUser.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcAppMenu.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcAppRole.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcAppRoleInFunc.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcAppRoleInMenu.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcAppUserInRole.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcApps.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcFunc.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcReport.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcUsers.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcSetting.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcLogRecord.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcLogSetting.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcLogSettingDetail.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcViewAdminInfo.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcLoginInfo.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcMessage.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcReceiveMsg.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcViewMessageReceive.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcUserInfo.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcVerifyInfo.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/ucenter/models/UcOauth.hbm.xml"/>
+
+            <mapping resource="com/ifcc/ecp/rlms/models/RlmsShare.hbm.xml"/>
+    <mapping resource="com/ifcc/ecp/rlms/models/RlmsFiles.hbm.xml"/>
+    <mapping resource="com/ifcc/ecp/rlms/models/RlmsResourceClassification.hbm.xml"/>
+    <mapping resource="com/ifcc/ecp/rlms/models/RlmsResources.hbm.xml"/>
+    <mapping resource="com/ifcc/ecp/rlms/models/RlmsViewResourceFileUser.hbm.xml"/>
+    <mapping resource="com/ifcc/ecp/rlms/models/RlmsViewUserResourceClassFileShareCvrs.hbm.xml"/>
+    <mapping resource="com/ifcc/ecp/rlms/models/RlmsViewShareCount.hbm.xml"/>
+    <mapping resource="com/ifcc/ecp/rlms/models/RlmsShareType.hbm.xml"/>
+  
+
+         <mapping resource="com/ifcc/ecp/cms/models/CmsAd.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/cms/models/CmsAdSpace.hbm.xml"/>
+   		 <mapping resource="com/ifcc/ecp/cms/models/CmsReview.hbm.xml"/>
+   		 <mapping resource="com/ifcc/ecp/cms/models/CmsChannel.hbm.xml"/>
+   		 <mapping resource="com/ifcc/ecp/cms/models/CmsArticle.hbm.xml"/>
+
+         <mapping resource="com/ifcc/ecp/social/models/SpBlogs.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/social/models/SpCrowd.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/social/models/SpFirendInUser.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/social/models/SpFriendsGroup.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/social/models/SpUserInCrowd.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/social/models/SpApply.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/social/models/SpViewCrowdUserInfo.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/social/models/SpViewApplyUserInfoByUid.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/social/models/SpViewApplyUserInfoByCid.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/social/models/SpFollow.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/social/models/SpViewFollowUserInfo.hbm.xml"/>
+         <mapping resource="com/ifcc/ecp/social/models/SpViewBlogPersonalHome.hbm.xml"/>
+
+  </session-factory>
+</hibernate-configuration>
