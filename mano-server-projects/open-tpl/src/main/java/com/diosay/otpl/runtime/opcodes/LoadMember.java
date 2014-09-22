@@ -58,17 +58,17 @@ public class LoadMember extends OpCode {
 
     @Override
     public int execute(ExecutionContext context) throws Exception {
-        
+
         Object obj = context.pop();
-        if(obj==null){
+        if (obj == null) {
             context.push(null);
             return this.getNextAddress();
         }
-        Class<?> clazz=obj.getClass();
+        Class<?> clazz = obj.getClass();
         Member member = null;
         try {
             for (Method m : clazz.getMethods()) {
-                if (m.getName().equals(name) && m.getParameterCount() == len) {
+                if (m.getName().equalsIgnoreCase(name) && m.getParameterCount() == len) {
                     member = m;
                     break;
                 }
@@ -83,7 +83,19 @@ public class LoadMember extends OpCode {
             String tmp = sb.toString();
             try {
                 for (Method m : clazz.getMethods()) {
-                    if (m.getName().equals(tmp) && m.getParameterCount() == len) {
+                    if (m.getName().equalsIgnoreCase(tmp) && m.getParameterCount() == len) {
+                        member = m;
+                        break;
+                    }
+                }
+            } catch (Exception ex) {
+            }
+        }
+
+        if (member == null && len == 0) {
+            try {
+                for (Field m : clazz.getFields()) {
+                    if (m.getName().equalsIgnoreCase(name)) {
                         member = m;
                         break;
                     }
@@ -93,17 +105,10 @@ public class LoadMember extends OpCode {
         }
 
         if (member == null) {
-            try {
-                member = clazz.getField(name);
-            } catch (Exception ex) {
-            }
-        }
-
-        if (member == null) {
             throw new UnsupportedOperationException("指定类成员未找到或未定义：" + name);
         }
         context.push(member);
-        
+
         return this.getNextAddress();
     }
 

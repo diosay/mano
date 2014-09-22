@@ -25,11 +25,11 @@ public class HttpChannel extends AioSocketChannel {
     HttpService service;
     boolean sentError;
     boolean keepAlive;
-    
-    public boolean keepAlive(){
+
+    public boolean keepAlive() {
         return keepAlive;
     }
-    
+
     @Override
     public void open(AsynchronousSocketChannel chan, ByteArrayBuffer buf) {
         buf.reset();
@@ -38,7 +38,7 @@ public class HttpChannel extends AioSocketChannel {
     }
 
     @Override
-    public void onFailed(Object sender, Throwable exc) {
+    public synchronized void onFailed(Object sender, Throwable exc) {
         service.getLogger().debug(exc);
         if (!sentError && isOpen()) {
             try {
@@ -72,11 +72,11 @@ public class HttpChannel extends AioSocketChannel {
 
     @Override
     public void onFlush(Buffer buffer, long bytesTransferred) {
-        if(buffer instanceof EndResponseBuffer){
-            if(false){//keepAlive && this.isOpen()
+        if (buffer instanceof EndResponseBuffer) {
+            if (false) {//keepAlive && this.isOpen()
                 this.getBuffer().reset();
                 this.read(parseHeader, null);
-            }else{
+            } else {
                 this.close(false);
             }
         }
@@ -97,17 +97,14 @@ public class HttpChannel extends AioSocketChannel {
     private static class ParseHeader extends ChannelHandler<HttpChannel, HttpRequestImpl> {
 
         //boolean requestline;
-
         @Override
-        protected void onRead(HttpChannel channel, int bytesRead, ByteArrayBuffer buffer, HttpRequestImpl request) {
+        protected synchronized void onRead(HttpChannel channel, int bytesRead, ByteArrayBuffer buffer, HttpRequestImpl request) {
             String line;
             HttpHeader header;
             boolean done = false;
             while ((line = buffer.readln(channel.charset)) != null) {
-                if (MANO_WEB_MACRO.DEBUG) {
-                    System.out.println(line);
-                }
-                if (request==null || request.method==null) {
+
+                if (request == null || request.method == null) {
 
                     String[] arr = Utility.split(line, " ", true);
                     if (arr.length != 3) {
@@ -127,6 +124,9 @@ public class HttpChannel extends AioSocketChannel {
                 } else {
                     header = HttpHeader.prase(line);
                     if (header == null) {
+                        if (MANO_WEB_MACRO.DEBUG) {
+                            System.out.println(line);
+                        }
                         onFailed(channel, new HttpException(HttpStatus.BadRequest, "Bad Request(Incorrect Header Entry)"));
                         return;
                     }
@@ -139,7 +139,7 @@ public class HttpChannel extends AioSocketChannel {
             } else {
                 try {
                     request.hasPostData();
-                    
+
                 } catch (HttpException ex) {
                     onFailed(channel, ex);
                     return;

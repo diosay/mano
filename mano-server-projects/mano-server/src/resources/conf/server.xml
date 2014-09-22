@@ -46,15 +46,20 @@
             <modules>
                 <add name="static_file_module" class="mano.web.StaticFileModule">
                     <!--http://www.w3school.com.cn/media/media_mimeref.asp-->
-                    <property name="ext:html">text/html</property>
+                    
                     <property name="ext:htm">text/html</property>
+                    <property name="ext:html">text/html</property>
                     <property name="ext:text">text/plain</property>
                     <property name="ext:css">text/css</property>
                     <property name="ext:js">application/x-javascript</property>
                     <property name="ext:jpg">image/jpeg</property>
                     <property name="ext:png">image/png</property>
                     <property name="ext:ico">image/x-icon</property>
+                    <property name="ext:cur">image/vnd.microsoft.icon</property>
+                    <property name="ext:svg">image/svg+xml</property>
                     <property name="ext:mp4">video/mp4</property>
+                    <property name="ext:woff">application/x-font-woff</property>
+
                     <property name="ext:rar">application/octet-stream</property>
                 </add>
                 
