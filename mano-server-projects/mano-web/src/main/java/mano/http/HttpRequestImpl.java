@@ -26,7 +26,7 @@ import mano.util.NameValueCollection;
  *
  * @author jun
  */
-class HttpRequestImpl extends HttpRequest implements HttpRequestAppender {
+public class HttpRequestImpl extends HttpRequest implements HttpRequestAppender {
 
     String method;
     String rawUrl;
@@ -259,7 +259,6 @@ class HttpRequestImpl extends HttpRequest implements HttpRequestAppender {
         return this.isConnected() && !postLoadFlag.get();
     }
 
-    @Override
     public void loadEntityBody(ChannelHandler<? extends Channel, ? extends Object> handler) throws Exception {
         this.connection.callHandler(handler, this);
     }
@@ -300,5 +299,20 @@ class HttpRequestImpl extends HttpRequest implements HttpRequestAppender {
     @Override
     public String getBoundary() {
         return this._boundary;
+    }
+
+    @Override
+    public HttpVersion getVersion() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public HttpMethod getMethod() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void loadEntityBody(HttpEntityBodyDecoder decoder) throws Exception {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

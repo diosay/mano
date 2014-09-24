@@ -7,13 +7,14 @@
  */
 package mano;
 
+import java.util.Objects;
 import mano.util.Utility;
 
 /**
  * 表示由 4 个 数值（0-32767） 值组成的版本号。 此类不能被继承。
  * @author jun <jun@diosay.com>
  */
-public final class Version {
+public final class Version implements Comparable<Version>{
 
     /**
      * 获取当前 Version 对象版本号的主要版本号部分的值。
@@ -34,7 +35,7 @@ public final class Version {
     /**
      * 获取当前 Version 对象的绝对值。
      */
-    public final long value;
+    public final Long value;
 
     public Version(int major, int minor, int build, int revision) {
         if (major < 0 || major > Short.MAX_VALUE) {
@@ -104,8 +105,7 @@ public final class Version {
         return toString(".");
     }
 
-    public static Version parse(byte[] bytes, int index) {
-
+    public static Version valueOf(byte[] bytes, int index) {
         Version ver = new Version(Utility.toShort(bytes, index),
                 Utility.toShort(bytes, index + 2),
                 Utility.toShort(bytes, index + 2),
@@ -113,8 +113,30 @@ public final class Version {
         return ver;
     }
 
-    public static Version parse(String version) {
+    public static Version valueOf(String version) {
         return null;
+    }
+
+    @Override
+    public int hashCode() {
+        return this.value.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        return Objects.equals(this.value, ((Version) obj).value);
+    }
+    
+    
+    @Override
+    public int compareTo(Version o) {
+        return this.value.compareTo(o.value);
     }
 
 }

@@ -55,7 +55,7 @@ public class HttpHeader {
         int index = text.indexOf(';');
         if (index > 0) {
             _value = text.substring(0, index);
-            Matcher m = pattern.matcher(text.substring(index));
+            Matcher m = pattern.matcher(text.substring(index+1));
             while (m.find()) {
                 if (_attrs == null) {
                     _attrs = new NameValueCollection<>();

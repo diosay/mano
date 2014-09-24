@@ -6,16 +6,16 @@
  * 
  */
 
-package mano.net;
+package com.diosay.mano.io;
 
 import java.io.IOException;
 import mano.Resettable;
 
 /**
- * 表示一个一次性消息和处理它的方法。
+ * 表示一个消息载体和处理消息的方法。
  * @author jun <jun@diosay.com>
  */
-public interface Message extends Resettable {
+public interface Message<T extends Channel> extends Resettable {
     /**
      * 处理该消息。
      * <p>注意：该消息是非线程安全的，所以请不要缓存任何方法参数。
@@ -23,5 +23,7 @@ public interface Message extends Resettable {
      * @param channel
      * @param attachment 
      */
-    <T> void process(IChannel channel,T attachment) throws IOException;
+    void process(T channel,ChannelHanlder<T> handler) throws IOException;
+    
+    ChannelHanlder<T> getHandler();
 }

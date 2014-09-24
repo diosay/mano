@@ -71,4 +71,6 @@ public class LogService extends IntentService {
         this.onStart();
     }
 
+    
+
 }

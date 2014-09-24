@@ -171,7 +171,7 @@ public class StaticFileModule implements HttpModule {
                 context.getResponse().setHeader("Accept-Ranges", "bytes");
                 context.getResponse().setHeader("ETag", etag);
                 context.getResponse().setHeader("Last-Modified", new DateTime(file.lastModified()).toGMTString());
-                switch (context.getRequest().method().toUpperCase()) {
+                switch (context.getRequest().getMethod().name()) {
                     case "GET":
                         if (range) {
                             context.getResponse().transmit(path, start, len);

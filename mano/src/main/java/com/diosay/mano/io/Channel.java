@@ -6,9 +6,8 @@
  * 
  */
 
-package mano.net;
+package com.diosay.mano.io;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -16,7 +15,8 @@ import java.nio.ByteBuffer;
  * 表示一个网络通道。
  * @author jun <jun@diosay.com>
  */
-public interface IChannel extends java.nio.channels.Channel{
+public interface Channel extends java.nio.channels.Channel{
+    Listener getListener();
     /**
      * 将一个消息放入待处理队列。
      * @param message 
@@ -27,9 +27,9 @@ public interface IChannel extends java.nio.channels.Channel{
      * 从通道中读取数据并写入缓冲区。
      * @param <T> 附件类型。
      * @param buffer 缓冲区
-     * @param attachment 附件
+     * @param handler 处理程序。
      */
-    <T> void read(ByteBuffer buffer,T attachment) throws IOException;
+    <T extends Channel> void read(ChannelBuffer buffer,ChannelHanlder<T> handler) throws IOException;
     
     /**
      * 将缓冲区中的数据写入通道。
@@ -37,7 +37,7 @@ public interface IChannel extends java.nio.channels.Channel{
      * @param buffer 缓冲区。
      * @param attachment 附件。
      */
-    <T> void write(ByteBuffer buffer,T attachment) throws IOException;
+    <T extends Channel> void write(ChannelBuffer buffer,ChannelHanlder<T> handler) throws IOException;
     
     /**
      * 将指定文件写入通道。
@@ -47,7 +47,7 @@ public interface IChannel extends java.nio.channels.Channel{
      * @param length 长度.
      * @param attachment 附件。
      */
-    <T> void write(String filename,long position,long length,T attachment) throws IOException;
+    <T extends Channel> void write(String filename, long position, long length, ChannelHanlder<T> handler) throws IOException;
     
     /**
      * 清空消息队列。

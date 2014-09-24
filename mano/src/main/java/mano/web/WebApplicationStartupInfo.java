@@ -7,6 +7,7 @@
  */
 package mano.web;
 
+import com.diosay.mano.service.Service;
 import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -18,7 +19,6 @@ import java.util.regex.Pattern;
 import mano.ContextClassLoader;
 import mano.http.HttpModuleSettings;
 import mano.http.HttpServer;
-import mano.service.Service;
 import mano.service.ServiceProvider;
 import mano.util.NameValueCollection;
 import mano.util.Utility;
@@ -103,7 +103,7 @@ public class WebApplicationStartupInfo {
                 }
             }
 
-            ContextClassLoader loader = new ContextClassLoader(((ServiceProvider) this.service).getService(Logger.class), new URL[0], serviceLoader);
+            ContextClassLoader loader = new ContextClassLoader(serviceLoader.getLogger(), new URL[0], serviceLoader);
 
             loader.register(files.toArray(new String[0]));
             this.exports.entrySet().iterator().forEachRemaining(item -> {

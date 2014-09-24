@@ -21,50 +21,7 @@ import mano.net.ChannelHandler;
  */
 public class HttpFormUrlEncodedParser<C extends Channel, A extends HttpRequestAppender> extends ChannelHandler<C, A> {
 
-    //private boolean done;
-    //private long read = 0;
     private Buffer worker;
-    /*
-     @Override
-     public void onRead(ByteArrayBuffer buffer, HttpRequestAppender appender) throws UnsupportedEncodingException, HttpException, IOException {
-     //System.out.println("=====kkkkkkkkkkkkk");
-     if (done) {
-     //buffer.reset();
-     return;
-     }
-        
-     String line;
-     if (buffer.length() == appender.getContentLength()) {
-     //System.out.println("=====aa");
-     line = buffer.readstr();
-            
-     } else if (appender.getContentLength() > buffer.inner().capacity()) {
-     //System.out.println("=====bbbb");
-     if (worker == null) {
-     if (appender.getContentLength() > Integer.MAX_VALUE - 1) {
-     throw new HttpException(HttpStatus.RequestEntityTooLarge, "Request entity too large");
-     }
-     worker = new Buffer(new byte[(int) appender.getContentLength()], 0, (int) appender.getContentLength());
-     }
-
-     if (!worker.hasRemaining()) {
-     throw new HttpException(HttpStatus.RequestEntityTooLarge, "Request entity too large");
-     }
-
-     worker.write(buffer.array, buffer.position(), buffer.length());
-     buffer.position(buffer.position() + buffer.length());
-     line = worker.readln();
-     } else {
-     //System.out.println("=====ggggggggggggg");
-     line = buffer.readln();
-     }
-     if (line == null) {
-     //System.out.println("=====dddddddddddddddd");
-     return;
-     }
-     parse(line, appender);
-     }*/
-    
     private void parse(String line, A appender) {
         //done = true;
         //System.out.println(line);

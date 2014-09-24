@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Set;
 import mano.ContextClassLoader;
+import mano.util.logging.Logger;
 
 /**
  * 全局的服务管理器。
@@ -29,6 +30,7 @@ public final class ServiceManager implements ServiceContainer {
 
     static {
         instance = new ServiceManager(); //初始化实例
+        instance.setLoader(new ContextClassLoader(Logger.getLog()));
     }
 
     @Override

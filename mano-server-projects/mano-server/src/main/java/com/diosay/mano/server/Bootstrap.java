@@ -39,7 +39,7 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
     @java.lang.Deprecated
     ContextClassLoader loader;
 
-    NameValueCollection<Service> services;
+    NameValueCollection<com.diosay.mano.service.Service> services;
     @java.lang.Deprecated
     String bootstrapPath;
 
@@ -213,7 +213,7 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
                 String name = attrs.getNamedItem("name").getNodeValue();
                 String type = attrs.getNamedItem("class").getNodeValue();
                 try {
-                    Service service = (Service) this.newInstance(type);
+                    com.diosay.mano.service.Service service = (com.diosay.mano.service.Service) this.newInstance(type);
                     service.getProperties().setProperty("service_name", name);
                     nodes2 = helper.selectNodes(nodes.item(i), "property");
                     if (nodes2 != null) {
@@ -257,7 +257,12 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
                 System.exit(0);
             } else {
                 services.values().stream().forEach((service) -> {
-                    ThreadPool.execute(service);
+                    try {
+                        service.init();
+                        ThreadPool.execute(service);
+                    } catch (Exception ex) {
+                        getLogger().error(ex);
+                    }
                 });
                 this.getLogger().info("server is started.");
 
@@ -314,19 +319,19 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
 
     public static void main(String[] args) {
         Bootstrap server = new Bootstrap();
+
+        String lib_path="E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\target\\build\\lib";
+        String web_path="E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\src\\main\\webapp";
         
-//        String lib_path="E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\target\\build\\lib";
-//        String web_path="E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\src\\main\\webapp";
-//        
-//        //lib_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\target\\build\\lib";
-//        //web_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\src\\main\\webapp";
-//        
-//        
-//        
-//        Mano.setProperty("manoserver.testing.test_webapp.config_file", web_path);
-//        Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", lib_path);
-//        server.start("E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\src\\resources\\conf\\server.xml", "E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\target\\build");
-        server.start(null, null);
+        //lib_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\target\\build\\lib";
+        //web_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\src\\main\\webapp";
+        
+        
+        
+        Mano.setProperty("manoserver.testing.test_webapp.config_file", web_path);
+        Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", lib_path);
+        server.start("E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\src\\resources\\conf\\server.xml", "E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\target\\build");
+        //server.start(null, null);
         server.loop();
     }
 

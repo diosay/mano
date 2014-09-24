@@ -467,7 +467,7 @@ public class UrlRouteModule implements HttpModule {
             return false;
         }
 
-        String key = context.getRequest().method() + "//" + context.getRequest().url().toString();
+        String key = context.getRequest().getMethod() + "//" + context.getRequest().url().toString();
         Route route = null;
         try {
             if (cache.get(key) == null) {

@@ -2,7 +2,6 @@
 <configuration>
     <server>
         <settings>
-            <!--E:\repositories\java\mano\mano-server-projects\mano-server\target\build-->
             <property name="server.dir">{user.dir}/..</property>
             <property name="logging.path">{server.dir}/logs</property>
         </settings>
@@ -14,9 +13,9 @@
         </logger>
         <services>
             <service name="cache.service" class="mano.caching.CacheService"></service>
-            <service name="http.service" class="mano.http.HttpService">
+            <service name="http.service" class="com.diosay.mano.web.HttpService">
                 <property name="config_file">{server.dir}/conf/server.xml</property>
-                <property name="buffer_size">4k</property>
+                <property name="buffer_size">8k</property>
                 <property name="max_connections">1024</property>
                 <property name="webapp.config_path">{server.dir}/conf/apps</property>
                 <property name="connection:http:address">0.0.0.0:9999</property>
@@ -25,12 +24,6 @@
         </services>
     </server>
     
-    
-    <!-- xmlns="http://mano.diosay.com/schemes/server.xsd"
-    xmlns:pkg="http://mano.diosay.com/schemes/package.xsd" 
-    xmlns:app="http://mano.diosay.com/schemes/web-application.xsd"-->
-        
-	
     <http.service>
         <machine>
             <request disabledEntityBody="false" maxEntityBodySize="4m" controller="home" action="index">

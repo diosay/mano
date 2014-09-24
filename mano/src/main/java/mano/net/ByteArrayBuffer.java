@@ -198,15 +198,6 @@ public class ByteArrayBuffer implements Buffer, Resettable {
     public synchronized int position(int n) {
         inner.position(n);
         return n;
-        /*if (n < 0 || n > this.capacity) {
-         return -1;
-         } else if (n >= this.len) {
-         this.len = n;
-         this.pos = n;
-         } else {
-         this.pos = n;
-         }
-         return n;*/
     }
 
     /**

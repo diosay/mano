@@ -14,7 +14,7 @@ import java.util.Properties;
  *
  * @author jun <jun@diosay.com>
  */
-public abstract class Service implements Runnable {
+public abstract class Service implements com.diosay.mano.service.Service {
 
     private ServiceContainer container;
     private Properties properties;
@@ -30,6 +30,7 @@ public abstract class Service implements Runnable {
 
     }
 
+    @Override
     public Properties getProperties() {
         return properties;
     }
@@ -58,7 +59,16 @@ public abstract class Service implements Runnable {
         
     }
 
+    @Override
+    public void init() throws Exception {
+    }
+    
     public abstract String getServiceName();
+    
+    @Override
+    public String getName(){
+        return getServiceName();
+    }
 
     @Override
     public String toString() {

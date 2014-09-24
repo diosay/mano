@@ -7,11 +7,13 @@
  */
 package mano.http;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
 import mano.InvalidOperationException;
 import mano.net.Channel;
 import mano.net.ChannelHandler;
+import mano.util.NameValueCollection;
 import mano.util.Utility;
 
 /**
@@ -27,11 +29,15 @@ import mano.util.Utility;
  */
 public abstract class HttpRequest {
 
+    private URL url;
+    private Map<String, String> query;
+
     /**
      * 获取当前 HTTP 请求的方法。
      *
      * @return
      */
+    @java.lang.Deprecated
     public abstract String method();
 
     /**
@@ -39,6 +45,7 @@ public abstract class HttpRequest {
      *
      * @return
      */
+    @java.lang.Deprecated
     public abstract String version();
 
     /**
@@ -46,7 +53,22 @@ public abstract class HttpRequest {
      *
      * @return
      */
+    @java.lang.Deprecated
     public abstract String protocol();
+
+    /**
+     * 获取请求的 HTTP 协议版本。
+     *
+     * @return
+     */
+    public abstract HttpVersion getVersion();
+
+    /**
+     * 获取当前 HTTP 请求的方法。
+     *
+     * @return
+     */
+    public abstract HttpMethod getMethod();
 
     /**
      * 获取请求标头的集合。
@@ -67,7 +89,25 @@ public abstract class HttpRequest {
      *
      * @return
      */
-    public abstract URL url();
+    public URL url() {
+        if (url == null) {
+            String path;
+            if (this.rawUrl().startsWith("/")) {
+                path = this.isSecure() ? "https://" : "http://";
+                path += this.headers().get("host").value();
+                path += this.rawUrl();
+            } else {
+                path = this.rawUrl();
+            }
+
+            try {
+                url = new URL(path);
+            } catch (MalformedURLException e) {
+                throw new mano.InvalidOperationException(e.getMessage(), e);
+            }
+        }
+        return url;
+    }
 
     /**
      * 指定客户端发送的内容长度（以字节计）。
@@ -81,7 +121,13 @@ public abstract class HttpRequest {
      *
      * @return
      */
-    public abstract Map<String, String> query();
+    public Map<String, String> query() {
+        if (query == null) {
+            query = new NameValueCollection<>();
+            HttpUtil.queryStringToMap(url.getQuery(), query);
+        }
+        return query;
+    }
 
     /**
      * 获取窗体变量集合。
@@ -100,17 +146,17 @@ public abstract class HttpRequest {
      * @return
      */
     public abstract Map<String, HttpPostFile> files();
-    private HttpCookieCollection cookie;
+    private HttpCookieCollection cookies;
 
     public HttpRequestCookie getCookie() {
-        if (cookie == null) {
-            cookie = new HttpCookieCollection();
+        if (cookies == null) {
+            cookies = new HttpCookieCollection();
             String str = null;
             if (this.headers().containsKey("Cookie")) {
                 str = this.headers().get("Cookie").text();
             }
             if (str == null || "".equals(str)) {
-                return cookie;
+                return cookies;
             }
             int index;
             for (String item : Utility.split(str, ";", true)) {
@@ -118,10 +164,10 @@ public abstract class HttpRequest {
                 if (index < 1) {
                     continue;
                 }
-                cookie.set(item.substring(0, index), item.substring(index + 1));
+                cookies.set(item.substring(0, index), item.substring(index + 1));
             }
         }
-        return cookie;
+        return cookies;
     }
 
     /**
@@ -148,10 +194,10 @@ public abstract class HttpRequest {
     /**
      * 使用自定义处理程序载入并处理 HTTP 请求实体正文。
      *
-     * @param handler 数据处理程序。
+     * @param decoder 解码程序。
      * @throws ark.InvalidOperationException
      */
-    public abstract void loadEntityBody(ChannelHandler<? extends Channel, ? extends Object> handler) throws Exception;
+    public abstract void loadEntityBody(HttpEntityBodyDecoder decoder) throws Exception;
 
     /**
      * 使用默认处理程序载入并处理 HTTP 请求实体正文。
