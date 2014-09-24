@@ -323,8 +323,8 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
         String lib_path="E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\target\\build\\lib";
         String web_path="E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\src\\main\\webapp";
         
-        //lib_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\target\\build\\lib";
-        //web_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\src\\main\\webapp";
+        lib_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\target\\build\\lib";
+        web_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\src\\main\\webapp";
         
         
         

@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import mano.DateTime;
@@ -46,7 +45,7 @@ public class StaticFileModule implements HttpModule {
 
     private boolean process(HttpContext context, String path, String mime) {
 
-        context.getApplication().getLogger().debug("process static path:" + path);
+        //context.getApplication().getLogger().debug("process static path:" + path);
 
         File file = new File(path);
         if (!file.exists() || !file.isFile()) {

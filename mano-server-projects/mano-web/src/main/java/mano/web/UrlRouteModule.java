@@ -473,7 +473,7 @@ public class UrlRouteModule implements HttpModule {
             if (cache.get(key) == null) {
 
                 for (Route r : routeTable) {
-                    app.getLogger().debug("matching: patten:" + r.patten + " url:" + tryPath);
+                    
                     if (r.test(context, tryPath)) {
                         route = r;
                         cache.set(key, r, 1000 * 60 * 10, true, null);
@@ -484,11 +484,12 @@ public class UrlRouteModule implements HttpModule {
                 route = (Route) (cache.get(key).getValue());
             }
         } catch (Throwable ex) {
-            app.getLogger().debug("call route handler", ex);
+            app.getLogger().debug("matching route error", ex);
             return false;
         }
 
         if (route == null) {
+            app.getLogger().debug("no matching: " + " url:" + tryPath);
             return false;
         }
 

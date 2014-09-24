@@ -49,6 +49,7 @@ public class HttpProtocol11 implements ChannelHanlder<HttpChannel> {
             while ((line = buffer.readln(channel.getInputEncoding())) != null) {
                 if (channel.phase == HttpChannel.REQUEST_LINE) {
                     channel.request = new HttpRequestImpl();
+                    channel.request.channel=channel;
                     String[] arr = line.split(" ");
                     channel.request.method = HttpMethod.valueOf(arr[0]);
                     channel.request.rawUrl = arr[1];
@@ -71,7 +72,7 @@ public class HttpProtocol11 implements ChannelHanlder<HttpChannel> {
                 channel.read(buffer, this);
             }
         } else if (channel.phase == HttpChannel.RESPONSE) {
-            if (channel.request == null || channel.request.decoder != null) {
+            if (channel.request == null || channel.request.decoder == null) {
                 throw new IllegalStateException("未设置处理程序");
             }
             channel.request.decoder.onRead(buffer, channel.request);

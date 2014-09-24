@@ -44,7 +44,9 @@ public class HttpResponseImpl extends HttpResponse {
     boolean auto = true;
     static final String CRLF = "\r\n";
     HttpHeaderCollection headers = new HttpHeaderCollection();
-
+    public HttpResponseImpl(){
+        this.buffering(false);
+    }
     private void writeHeaders() {
         checkAndThrowHeaderSent();
         
@@ -181,7 +183,9 @@ public class HttpResponseImpl extends HttpResponse {
 
     @Override
     public void write(byte[] array, int offset, int length) {
-
+        if(length==0){
+            return;
+        }
         if (!this.buffering()) {
             buffer = ByteBuffer.wrap(array, offset, length);
             this.flush();
@@ -192,9 +196,10 @@ public class HttpResponseImpl extends HttpResponse {
                 if (remaining >= 0) {
                     buffer.put(array, offset, length);
                 } else {
-                    buffer.put(array, offset, buffer.remaining());
+                    int len=buffer.remaining();
+                    buffer.put(array, offset, len);
                     flush();
-                    this.write(array, offset + length + remaining + length, Math.abs(remaining + length));
+                    this.write(array, offset + len, length-len);
                 }
 
             } else {

@@ -31,7 +31,7 @@ public class Home extends Controller {
 
         HttpPostFile f = this.file("fn");
         if (f != null) {
-            set("postfile", f.getFilename());
+            set("postfile", f.getOriginal());
             f.savaAs(this.getContext().getServer().mapPath("upfile/abc") + f.getExtension());
         }
         set("posttext", this.form("username"));

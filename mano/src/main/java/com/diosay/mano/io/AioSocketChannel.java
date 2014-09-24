@@ -24,6 +24,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import mano.util.ThreadPool;
 
 /**
@@ -38,6 +39,7 @@ public class AioSocketChannel implements Channel {
     protected final Queue<Message> paddings = new LinkedBlockingQueue<>();
     protected Semaphore writeLocker = new Semaphore(1);
     protected Semaphore readLocker = new Semaphore(1);
+    final AtomicBoolean writePadding = new AtomicBoolean(false);
     private TransferProxy proxy;
 
     public AioSocketChannel(AsynchronousSocketChannel channel, Listener listener) {
@@ -58,6 +60,14 @@ public class AioSocketChannel implements Channel {
 
             @Override
             public void run() {
+                try {
+                    if (!writeLocker.tryAcquire(5, TimeUnit.MINUTES)) {
+                        return;
+                    }
+                } catch (InterruptedException ex) {
+                    return;
+                }
+
                 synchronized (paddings) {
                     if (paddings.isEmpty()) {
                         return;
@@ -73,6 +83,22 @@ public class AioSocketChannel implements Channel {
                         msg = null;
                     }
                 }
+
+                try {
+                    synchronized (writePadding) {
+                        if (writePadding.get()) {
+                            writePadding.wait(1000 * 60 * 5);
+                        }
+                    }
+                } catch (InterruptedException ex) {
+
+                } finally {
+                    writeLocker.release();
+                    synchronized (writePadding) {
+                        writePadding.set(false);
+                        writePadding.notify();
+                    }
+                }
             }
         });
     }
@@ -86,21 +112,28 @@ public class AioSocketChannel implements Channel {
             throw new ClosedChannelException();
         }
         try {
-            if (!writeLocker.tryAcquire(5, TimeUnit.MINUTES)) {
-                throw new InterruptedByTimeoutException();
+            synchronized (writePadding) {
+                if (writePadding.get()) {
+                    writePadding.wait(1000 * 60 * 5);
+                }
             }
         } catch (InterruptedException ex) {
             throw new InterruptedByTimeoutException();
         }
+        writePadding.set(true);
         long sent = -1;
         try {
             try (FileInputStream in = new FileInputStream(filename)) {
                 sent = in.getChannel().transferTo(position, length, proxy);
             }
         } finally {
-            writeLocker.release();
+            synchronized (writePadding) {
+                writePadding.set(false);
+                writePadding.notify();
+            }
+            //writeLocker.release();
         }
-        
+
         try {
             handler.written(null, (int) sent, (T) this);
         } catch (Exception ex) {
@@ -111,12 +144,15 @@ public class AioSocketChannel implements Channel {
 
     @Override
     public void close() {
+        
         try {
+            Thread.sleep(1000*5);
             inner.close();
-        } catch (IOException ex) {
+        } catch (Throwable ex) {
             //ignored
         } finally {
             inner = null;
+            listener.getGroup().remove(this);
         }
     }
 
@@ -160,6 +196,7 @@ public class AioSocketChannel implements Channel {
         } catch (InterruptedException ex) {
             throw new InterruptedByTimeoutException();
         }
+
         inner.read(buffer.buffer, 5, TimeUnit.SECONDS, handler, new CompletionHandler<Integer, ChannelHanlder<T>>() {
             @Override
             public void completed(Integer result, ChannelHanlder<T> handler) {
@@ -196,17 +233,19 @@ public class AioSocketChannel implements Channel {
             throw new ClosedChannelException();
         }
         try {
-            if (!writeLocker.tryAcquire(5, TimeUnit.MINUTES)) {
-                throw new InterruptedByTimeoutException();
+            synchronized (writePadding) {
+                if (writePadding.get()) {
+                    writePadding.wait(1000 * 60 * 5);
+                }
             }
         } catch (InterruptedException ex) {
             throw new InterruptedByTimeoutException();
         }
+        writePadding.set(true);
         this.write0(buffer, handler);
     }
 
     private <T extends Channel> void write0(ChannelBuffer buffer, ChannelHanlder<T> handler) throws IOException {
-
         inner.write(buffer.buffer, 5, TimeUnit.SECONDS, handler, new CompletionHandler<Integer, ChannelHanlder<T>>() {
             @Override
             public void completed(Integer result, ChannelHanlder<T> handler) {
@@ -220,7 +259,10 @@ public class AioSocketChannel implements Channel {
                         failed(ex, handler);
                     }
                 } else {
-                    writeLocker.release();
+                    synchronized (writePadding) {
+                        writePadding.set(false);
+                        writePadding.notify();
+                    }
                     try {
                         handler.written(buffer, result, (T) AioSocketChannel.this);
                     } catch (Exception ex) {
@@ -234,7 +276,10 @@ public class AioSocketChannel implements Channel {
                 try {
                     handler.failed(exc, (T) AioSocketChannel.this);
                 } finally {
-                    writeLocker.release();
+                    synchronized (writePadding) {
+                        writePadding.set(false);
+                        writePadding.notify();
+                    }
                 }
             }
         });

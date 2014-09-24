@@ -323,7 +323,7 @@ public class Utility {
             parent.mkdirs();
         }
 
-        target.createNewFile();
+        //target.createNewFile();
 
         Files.copy(src.toPath(), target.toPath(), LinkOption.NOFOLLOW_LINKS);
 

@@ -50,12 +50,12 @@ public class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppend
     String boundary;
     HttpChannel channel;
     HttpEntityBodyDecoder decoder;
-
-    private synchronized void doLoadEntityBody(boolean auto) {
-        postLoadedFlag.set(true);
-        form = new NameValueCollection<>();
-        files = new NameValueCollection<>();
-
+    boolean pred;
+    private synchronized void pre(){
+        if(pred){
+            return;
+        }
+        pred=true;
         if (headers.containsKey("Content-length")) {
             remaining = contentLength = Long.parseLong(headers.get("Content-Length").value());
         }
@@ -77,17 +77,27 @@ public class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppend
                 }
             }
         }
+    }
+    
+    private synchronized void doLoadEntityBody(boolean auto) {
+        postLoadedFlag.set(true);
+        form = new NameValueCollection<>();
+        files = new NameValueCollection<>();
 
-        if (!isChunked) {
+        
+
+        if (isChunked) {
             throw new UnsupportedOperationException("Not supported chunked encoding.");
         } else if (auto && isFormUrlEncoded) {
             try {
+                postLoadedFlag.set(false);
                 loadEntityBody(new HttpFormUrlEncodedDecoder());
             } catch (Exception ex) {
                 throw new InvalidOperationException(ex);
             }
         } else if (auto && isFormMultipart) {
             try {
+                postLoadedFlag.set(false);
                 loadEntityBody(new HttpMultipartDecoder());
             } catch (Exception ex) {
                 throw new InvalidOperationException(ex);
@@ -165,6 +175,7 @@ public class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppend
 
     @Override
     public boolean canLoadEntityBody() {
+        pre();
         return hasEntityBody && !postLoadedFlag.get();
     }
 
@@ -174,11 +185,17 @@ public class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppend
             return;
         }
         doLoadEntityBody(false);
+        postLoadedFlag.set(true);
         this.decoder = decoder;
         int pos = channel.buffer.position();
         if (channel.buffer.hasRemaining()) {
-            decoder.onRead(null, null);
+            decoder.onRead(channel.buffer, this);
             this.remaining -= channel.buffer.position() - pos;
+        }
+        
+        if(loadedFlag.get() && (this.remaining >0 || channel.buffer.hasRemaining())){
+            this.remaining-=channel.buffer.remaining();
+            channel.buffer.position(channel.buffer.limit());//TODO
         }
 
         if (this.remaining > 0) {

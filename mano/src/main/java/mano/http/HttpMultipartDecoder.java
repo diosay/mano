@@ -37,7 +37,7 @@ public class HttpMultipartDecoder implements HttpEntityBodyDecoder {
     @Override
     public <T extends HttpEntityBodyAppender> void onRead(ChannelBuffer buffer, T appender) throws Exception {
         if (done) {
-            buffer.position(buffer.limit() - 1);
+            buffer.position(buffer.limit());//TODO
             return;
         }
         if (state == IDLE) {
@@ -62,7 +62,6 @@ public class HttpMultipartDecoder implements HttpEntityBodyDecoder {
             this.data(buffer, appender);
         }
 
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     private int findBoundary(boolean first, ChannelBuffer buffer) {
