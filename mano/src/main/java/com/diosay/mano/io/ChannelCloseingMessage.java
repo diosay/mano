@@ -8,6 +8,7 @@
 package com.diosay.mano.io;
 
 import java.io.IOException;
+import mano.util.LockState;
 
 /**
  * 关闭通道
@@ -19,9 +20,9 @@ public class ChannelCloseingMessage<T extends Channel> implements Message<T> {
     public ChannelHanlder<T> handler;
 
     @Override
-    public void process(T channel, ChannelHanlder<T> handler) throws IOException {
+    public void process(T channel, LockState state) throws IOException {
         channel.close();
-        handler.closed(channel);
+        
     }
 
     @Override

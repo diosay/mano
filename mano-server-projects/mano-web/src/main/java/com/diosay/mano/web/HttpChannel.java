@@ -52,7 +52,7 @@ public class HttpChannel extends AioSocketChannel implements HttpContext {
     public static final int LOAD_HEADER = 2;
     public static final int RESPONSE = 3;
     int phase;
-    ChannelHanlder<? extends HttpChannel> handler;
+    //ChannelHanlder<? extends HttpChannel> handler;
     ChannelBuffer buffer;
     HttpRequestImpl request;
     HttpResponseImpl response;

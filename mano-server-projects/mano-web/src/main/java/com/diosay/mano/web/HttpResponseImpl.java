@@ -27,6 +27,7 @@ import mano.http.HttpHeader;
 import mano.http.HttpHeaderCollection;
 import mano.http.HttpResponse;
 import mano.net.DBuffer;
+import mano.util.LockState;
 
 /**
  * 当前HTTP请求的响应。
@@ -93,7 +94,7 @@ public class HttpResponseImpl extends HttpResponse {
         msg.array = sb.toString().getBytes(this.charset());
         msg.offset = 0;
         msg.length = msg.array.length;
-        msg.handler = channel.handler;
+        //msg.handler = channel.handler;
         channel.enqueue(msg);
         headerSent = true;
     }
@@ -109,11 +110,11 @@ public class HttpResponseImpl extends HttpResponse {
             msg.array = String.format("%s %s", Long.toHexString(length), CRLF).getBytes(this.charset());
             msg.offset = 0;
             msg.length = msg.array.length;
-            msg.handler = channel.handler;
+            //msg.handler = channel.handler;
             channel.enqueue(msg);
 
             FileReginMessage fmsg = new FileReginMessage();
-            fmsg.handler = channel.handler;
+            //fmsg.handler = channel.handler;
             fmsg.filename = filename;
             fmsg.position = position;
             fmsg.length = length;
@@ -123,13 +124,13 @@ public class HttpResponseImpl extends HttpResponse {
             msg.array = String.format("%s", CRLF).getBytes(this.charset());
             msg.offset = 0;
             msg.length = msg.array.length;
-            msg.handler = channel.handler;
+            //msg.handler = channel.handler;
             channel.enqueue(msg);
 
         } else {
             contentLength -= length;
             FileReginMessage fmsg = new FileReginMessage();
-            fmsg.handler = channel.handler;
+            //fmsg.handler = channel.handler;
             fmsg.filename = filename;
             fmsg.position = position;
             fmsg.length = length;
@@ -244,19 +245,19 @@ public class HttpResponseImpl extends HttpResponse {
                 msg.array = String.format("%s %s", Long.toHexString(buffer.limit()), CRLF).getBytes(this.charset());
                 msg.offset = 0;
                 msg.length = msg.array.length;
-                msg.handler = channel.handler;
+                //msg.handler = channel.handler;
                 channel.enqueue(msg);
 
                 ByteBufferMessage msg2 = new ByteBufferMessage();
                 msg2.buffer = buffer;
-                msg2.handler = channel.handler;
+                //msg2.handler = channel.handler;
                 channel.enqueue(msg2);
 
                 msg = new ByteArrayMessage();
                 msg.array = String.format("%s", CRLF).getBytes(this.charset());
                 msg.offset = 0;
                 msg.length = msg.array.length;
-                msg.handler = channel.handler;
+                //msg.handler = channel.handler;
                 channel.enqueue(msg);
             }
 
@@ -265,7 +266,7 @@ public class HttpResponseImpl extends HttpResponse {
                 msg.array = String.format("0%s%s", CRLF, CRLF).getBytes(this.charset());
                 msg.offset = 0;
                 msg.length = msg.array.length;
-                msg.handler = channel.handler;
+                //msg.handler = channel.handler;
                 channel.enqueue(msg);
             }
 
@@ -273,7 +274,7 @@ public class HttpResponseImpl extends HttpResponse {
             contentLength -= buffer.limit();
             ByteBufferMessage msg2 = new ByteBufferMessage();
             msg2.buffer = buffer;
-            msg2.handler = channel.handler;
+            //msg2.handler = channel.handler;
             channel.enqueue(msg2);
         }
 
@@ -287,13 +288,14 @@ public class HttpResponseImpl extends HttpResponse {
         channel.enqueue(new Message() {
 
             @Override
-            public void process(Channel channel, ChannelHanlder handler) throws IOException {
+            public void process(Channel channel, LockState state) throws IOException {
                 channel.close();
+                state.notifyDone();
             }
 
             @Override
             public ChannelHanlder getHandler() {
-                return channel.handler;
+                return null;
             }
 
             @Override

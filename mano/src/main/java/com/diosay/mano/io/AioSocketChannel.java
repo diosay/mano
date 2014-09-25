@@ -25,6 +25,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import mano.util.LockState;
+import mano.util.OptimisticLocker;
 import mano.util.ThreadPool;
 
 /**
@@ -37,9 +39,10 @@ public class AioSocketChannel implements Channel {
     AsynchronousSocketChannel inner;
     Listener listener;
     protected final Queue<Message> paddings = new LinkedBlockingQueue<>();
-    protected Semaphore writeLocker = new Semaphore(1);
+    protected Semaphore writeLocker2 = new Semaphore(1);
     protected Semaphore readLocker = new Semaphore(1);
     final AtomicBoolean writePadding = new AtomicBoolean(false);
+    final OptimisticLocker writeLocker = new OptimisticLocker();
     private TransferProxy proxy;
 
     public AioSocketChannel(AsynchronousSocketChannel channel, Listener listener) {
@@ -60,45 +63,32 @@ public class AioSocketChannel implements Channel {
 
             @Override
             public void run() {
-                try {
-                    if (!writeLocker.tryAcquire(5, TimeUnit.MINUTES)) {
-                        return;
-                    }
-                } catch (InterruptedException ex) {
-                    return;
-                }
-
                 synchronized (paddings) {
                     if (paddings.isEmpty()) {
+                        return;
+                    }
+                    LockState state = writeLocker.acquire(1000 * 60 * 5);
+                    if (state == null) {
+                        flush();//try
                         return;
                     }
                     Message msg = paddings.poll();
                     if (msg != null) {
                         try {
-                            msg.process(AioSocketChannel.this, msg.getHandler());
-                        } catch (IOException ex) {
+                            msg.process(AioSocketChannel.this, state);
+                        } catch (Exception ex) {
                             //onFailed(ex, msg);
+                            ex.printStackTrace();
+                        } finally {
+                            readLocker.release();
                         }
                         onFlushed(msg);
                         msg = null;
+                    } else {
+                        writeLocker.release(state);
                     }
                 }
-
-                try {
-                    synchronized (writePadding) {
-                        if (writePadding.get()) {
-                            writePadding.wait(1000 * 60 * 5);
-                        }
-                    }
-                } catch (InterruptedException ex) {
-
-                } finally {
-                    writeLocker.release();
-                    synchronized (writePadding) {
-                        writePadding.set(false);
-                        writePadding.notify();
-                    }
-                }
+                flush();
             }
         });
     }
@@ -107,46 +97,10 @@ public class AioSocketChannel implements Channel {
     }
 
     @Override
-    public <T extends Channel> void write(String filename, long position, long length, ChannelHanlder<T> handler) throws IOException {
-        if (!isOpen()) {
-            throw new ClosedChannelException();
-        }
-        try {
-            synchronized (writePadding) {
-                if (writePadding.get()) {
-                    writePadding.wait(1000 * 60 * 5);
-                }
-            }
-        } catch (InterruptedException ex) {
-            throw new InterruptedByTimeoutException();
-        }
-        writePadding.set(true);
-        long sent = -1;
-        try {
-            try (FileInputStream in = new FileInputStream(filename)) {
-                sent = in.getChannel().transferTo(position, length, proxy);
-            }
-        } finally {
-            synchronized (writePadding) {
-                writePadding.set(false);
-                writePadding.notify();
-            }
-            //writeLocker.release();
-        }
-
-        try {
-            handler.written(null, (int) sent, (T) this);
-        } catch (Exception ex) {
-            handler.failed(ex, (T) AioSocketChannel.this);
-        }
-
-    }
-
-    @Override
     public void close() {
-        
+
         try {
-            Thread.sleep(1000*5);
+            //Thread.sleep(1000 * 5);
             inner.close();
         } catch (Throwable ex) {
             //ignored
@@ -184,7 +138,7 @@ public class AioSocketChannel implements Channel {
     }
 
     @Override
-    public <T extends Channel> void read(ChannelBuffer buffer, ChannelHanlder<T> handler) throws IOException {
+    public void read(ChannelBuffer buffer) throws IOException {
 
         if (!isOpen()) {
             throw new ClosedChannelException();
@@ -197,90 +151,99 @@ public class AioSocketChannel implements Channel {
             throw new InterruptedByTimeoutException();
         }
 
-        inner.read(buffer.buffer, 5, TimeUnit.SECONDS, handler, new CompletionHandler<Integer, ChannelHanlder<T>>() {
-            @Override
-            public void completed(Integer result, ChannelHanlder<T> handler) {
+        try {
+            inner.read(buffer.buffer, 5, TimeUnit.SECONDS, buffer, new CompletionHandler<Integer, Object>() {
+                @Override
+                public void completed(Integer result, Object obj) {
 
-                if (result < 0) {
-                    failed(new ClosedChannelException(), handler);
-                } else {
-                    readLocker.release();
-                    try {
-                        buffer.buffer.flip();
-                        handler.read(buffer, result, (T) AioSocketChannel.this);
-                    } catch (Exception ex) {
-                        handler.failed(ex, (T) AioSocketChannel.this);
+                    if (result < 0) {
+                        failed(new ClosedChannelException(), obj);
+                    } else {
+                        readLocker.release();
+                        ChannelHanlder handler = getListener().getGroup().getHandler();
+                        try {
+                            buffer.buffer.flip();
+
+                            handler.read(buffer, result, AioSocketChannel.this);
+                        } catch (Exception ex) {
+                            handler.failed(ex, AioSocketChannel.this);
+                        }
                     }
                 }
-            }
 
-            @Override
-            public void failed(Throwable exc, ChannelHanlder<T> handler) {
-                try {
-                    handler.failed(exc, (T) AioSocketChannel.this);
-                } finally {
-                    readLocker.release();
+                @Override
+                public void failed(Throwable exc, Object obj) {
+                    ChannelHanlder handler = getListener().getGroup().getHandler();
+                    try {
+                        handler.failed(exc, AioSocketChannel.this);
+                    } finally {
+                        readLocker.release();
+                    }
                 }
-            }
-        });
-
+            });
+        } finally {
+            readLocker.release();
+        }
     }
 
     @Override
-    public <T extends Channel> void write(ChannelBuffer buffer, ChannelHanlder<T> handler) throws IOException {
+    public void write(ChannelBuffer buffer, LockState state) throws IOException {
+        if (!isOpen()) {
+            throw new ClosedChannelException();
+        }
+        this.write0(buffer, state);
+    }
+
+    @Override
+    public void write(String filename, long position, long length, LockState state) throws IOException {
 
         if (!isOpen()) {
             throw new ClosedChannelException();
         }
-        try {
-            synchronized (writePadding) {
-                if (writePadding.get()) {
-                    writePadding.wait(1000 * 60 * 5);
-                }
-            }
-        } catch (InterruptedException ex) {
-            throw new InterruptedByTimeoutException();
+
+        long sent;
+        try (FileInputStream in = new FileInputStream(filename)) {
+            sent = in.getChannel().transferTo(position, length, proxy);
         }
-        writePadding.set(true);
-        this.write0(buffer, handler);
+        state.notifyDone();
+        ChannelHanlder handler = getListener().getGroup().getHandler();
+        try {
+            handler.written(null, (int) sent, this);
+        } catch (Exception ex) {
+            handler.failed(ex, AioSocketChannel.this);
+        }
     }
 
-    private <T extends Channel> void write0(ChannelBuffer buffer, ChannelHanlder<T> handler) throws IOException {
-        inner.write(buffer.buffer, 5, TimeUnit.SECONDS, handler, new CompletionHandler<Integer, ChannelHanlder<T>>() {
+    private void write0(ChannelBuffer buffer, LockState state) throws IOException {
+
+        inner.write(buffer.buffer, 5, TimeUnit.SECONDS, buffer, new CompletionHandler<Integer, Object>() {
             @Override
-            public void completed(Integer result, ChannelHanlder<T> handler) {
+            public void completed(Integer result, Object obj) {
 
                 if (result < 0) {
-                    failed(new ClosedChannelException(), handler);
+                    failed(new ClosedChannelException(), obj);
                 } else if (buffer.buffer.hasRemaining()) {
                     try {
-                        write0(buffer, handler);
+                        write0(buffer, state);
                     } catch (IOException ex) {
-                        failed(ex, handler);
+                        failed(ex, obj);
                     }
                 } else {
-                    synchronized (writePadding) {
-                        writePadding.set(false);
-                        writePadding.notify();
-                    }
+                    state.notifyDone();
+                    ChannelHanlder handler = getListener().getGroup().getHandler();
                     try {
-                        handler.written(buffer, result, (T) AioSocketChannel.this);
+                        handler.written(buffer, result, AioSocketChannel.this);
                     } catch (Exception ex) {
-                        handler.failed(ex, (T) AioSocketChannel.this);
+                        handler.failed(ex, AioSocketChannel.this);
                     }
                 }
             }
 
             @Override
-            public void failed(Throwable exc, ChannelHanlder<T> handler) {
-                try {
-                    handler.failed(exc, (T) AioSocketChannel.this);
-                } finally {
-                    synchronized (writePadding) {
-                        writePadding.set(false);
-                        writePadding.notify();
-                    }
-                }
+            public void failed(Throwable exc, Object obj) {
+                state.notifyDone();
+                ChannelHanlder handler = getListener().getGroup().getHandler();
+                handler.failed(exc, AioSocketChannel.this);
             }
         });
     }

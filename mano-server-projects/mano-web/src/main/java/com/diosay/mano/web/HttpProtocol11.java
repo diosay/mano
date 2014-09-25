@@ -29,15 +29,15 @@ public class HttpProtocol11 implements ChannelHanlder<HttpChannel> {
 
     @Override
     public void connected(HttpChannel channel) throws Exception {
-        channel.handler = this;
+        //channel.handler = this;
         channel.buffer = channel.getListener().getGroup().allocate();
         channel.start();
-        channel.read(channel.buffer, this);
+        channel.read(channel.buffer);
     }
 
     @Override
     public void closed(HttpChannel channel) {
-        
+
     }
 
     @Override
@@ -49,7 +49,7 @@ public class HttpProtocol11 implements ChannelHanlder<HttpChannel> {
             while ((line = buffer.readln(channel.getInputEncoding())) != null) {
                 if (channel.phase == HttpChannel.REQUEST_LINE) {
                     channel.request = new HttpRequestImpl();
-                    channel.request.channel=channel;
+                    channel.request.channel = channel;
                     String[] arr = line.split(" ");
                     channel.request.method = HttpMethod.valueOf(arr[0]);
                     channel.request.rawUrl = arr[1];
@@ -69,20 +69,29 @@ public class HttpProtocol11 implements ChannelHanlder<HttpChannel> {
             if (!buffer.buffer.hasRemaining()) {
                 failed(new IllegalArgumentException("缓冲区已满，请求头太大"), channel);
             } else {
-                channel.read(buffer, this);
+                channel.read(buffer);
             }
         } else if (channel.phase == HttpChannel.RESPONSE) {
             if (channel.request == null || channel.request.decoder == null) {
                 throw new IllegalStateException("未设置处理程序");
             }
+
+            int pos = buffer.position();
             channel.request.decoder.onRead(buffer, channel.request);
+            channel.request.remaining -= buffer.position() - pos;
+
+            if (channel.request.loadedFlag.get() && (channel.request.remaining > 0 || buffer.hasRemaining())) {
+                channel.request.remaining -= buffer.remaining();
+                buffer.position(buffer.limit());//TODO
+            }
+
             if (channel.request.remaining > 0) {
                 if (!buffer.hasRemaining()) {
                     buffer.clear();
                 } else {
                     buffer.compact();
                 }
-                channel.read(buffer, this);
+                channel.read(buffer);
             }
         } else {
             //error

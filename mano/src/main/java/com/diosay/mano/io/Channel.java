@@ -9,7 +9,7 @@
 package com.diosay.mano.io;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import mano.util.LockState;
 
 /**
  * 表示一个网络通道。
@@ -29,7 +29,7 @@ public interface Channel extends java.nio.channels.Channel{
      * @param buffer 缓冲区
      * @param handler 处理程序。
      */
-    <T extends Channel> void read(ChannelBuffer buffer,ChannelHanlder<T> handler) throws IOException;
+    void read(ChannelBuffer buffer) throws IOException;
     
     /**
      * 将缓冲区中的数据写入通道。
@@ -37,7 +37,7 @@ public interface Channel extends java.nio.channels.Channel{
      * @param buffer 缓冲区。
      * @param attachment 附件。
      */
-    <T extends Channel> void write(ChannelBuffer buffer,ChannelHanlder<T> handler) throws IOException;
+    void write(ChannelBuffer buffer,LockState state) throws IOException;
     
     /**
      * 将指定文件写入通道。
@@ -47,7 +47,7 @@ public interface Channel extends java.nio.channels.Channel{
      * @param length 长度.
      * @param attachment 附件。
      */
-    <T extends Channel> void write(String filename, long position, long length, ChannelHanlder<T> handler) throws IOException;
+    void write(String filename, long position, long length, LockState state) throws IOException;
     
     /**
      * 清空消息队列。

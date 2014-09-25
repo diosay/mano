@@ -9,6 +9,7 @@ package com.diosay.mano.io;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import mano.util.LockState;
 
 /**
  * 字节缓冲区消息。
@@ -21,8 +22,8 @@ public class ByteBufferMessage<T extends Channel> implements Message<T> {
     public ByteBuffer buffer;
 
     @Override
-    public void process(T channel, ChannelHanlder<T> handler) throws IOException {
-        channel.write(new ChannelBuffer(buffer), handler);
+    public void process(T channel, LockState state) throws IOException {
+        channel.write(new ChannelBuffer(buffer), state);
     }
 
     @Override

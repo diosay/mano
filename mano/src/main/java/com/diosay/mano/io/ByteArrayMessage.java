@@ -8,6 +8,7 @@
 package com.diosay.mano.io;
 
 import java.io.IOException;
+import mano.util.LockState;
 
 /**
  * 字节组消息
@@ -26,8 +27,8 @@ public class ByteArrayMessage<T extends Channel> implements Message<T> {
     }
 
     @Override
-    public void process(T channel, ChannelHanlder<T> handler) throws IOException {
-        channel.write(new ChannelBuffer(array, offset, length), handler);
+    public void process(T channel, LockState state) throws IOException {
+        channel.write(new ChannelBuffer(array, offset, length), state);
     }
 
     @Override

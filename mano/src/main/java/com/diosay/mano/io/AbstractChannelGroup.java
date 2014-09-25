@@ -62,16 +62,14 @@ public abstract class AbstractChannelGroup {
             if (!worker.getListener().workers.contains(worker)) {
                 worker.getListener().workers.add(worker);
                 channelCount.getAndIncrement();
+            }else{
+                return;
             }
         }
 
         try {
-            ChannelHanlder handler = hanlderType.newInstance();
+            ChannelHanlder handler = getHandler();
             handler.connected(worker);
-        } catch (InstantiationException ex) {
-            ex.printStackTrace();
-        } catch (IllegalAccessException ex) {
-            ex.printStackTrace();
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -92,7 +90,16 @@ public abstract class AbstractChannelGroup {
                 worker.getListener().workers.remove(worker);
                 channelCount.getAndDecrement();
                 channelCount.notify();
+            }else{
+                return;
             }
+        }
+        
+        try {
+            ChannelHanlder handler = getHandler();
+            handler.closed(worker);
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 
@@ -138,6 +145,19 @@ public abstract class AbstractChannelGroup {
      */
     public void setHandler(Class<? extends ChannelHanlder> type){
         hanlderType=type;
+    }
+    
+    public ChannelHanlder getHandler(){
+        try {
+            return  hanlderType.newInstance();
+        } catch (InstantiationException ex) {
+            ex.printStackTrace();
+        } catch (IllegalAccessException ex) {
+            ex.printStackTrace();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return null;
     }
 
     //http://blog.csdn.net/woshixuye/article/details/18862361

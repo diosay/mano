@@ -8,6 +8,7 @@
 package com.diosay.mano.io;
 
 import java.io.IOException;
+import mano.util.LockState;
 
 /**
  * 文件范围消息。
@@ -22,8 +23,8 @@ public class FileReginMessage<T extends Channel> implements Message<T> {
     public long length;
 
     @Override
-    public void process(T channel, ChannelHanlder<T> handler) throws IOException {
-        channel.write(filename, position, length, handler);
+    public void process(T channel, LockState state) throws IOException {
+        channel.write(filename, position, length, state);
     }
 
     @Override

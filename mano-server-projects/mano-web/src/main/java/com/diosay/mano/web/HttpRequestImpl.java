@@ -204,7 +204,7 @@ public class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppend
             } else {
                 channel.buffer.compact();
             }
-            channel.read(channel.buffer, channel.handler);
+            channel.read(channel.buffer);
         }
         waitLoadEntityBody();
     }
