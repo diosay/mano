@@ -17,7 +17,7 @@
             <artifactId>open-tpl</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
+<!--        <dependency>
             <groupId>org.jboss.netty</groupId>
             <artifactId>netty</artifactId>
             <version>5.0.0.ALPHA1</version>
@@ -27,7 +27,7 @@
             <artifactId>netty</artifactId>
             <version>5.0.0.ALPHA1</version>
             <classifier>sources</classifier>
-        </dependency>
+        </dependency>-->
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
