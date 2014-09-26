@@ -56,6 +56,8 @@ public class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppend
             return;
         }
         pred=true;
+        form = new NameValueCollection<>();
+        files = new NameValueCollection<>();
         if (headers.containsKey("Content-length")) {
             remaining = contentLength = Long.parseLong(headers.get("Content-Length").value());
         }
@@ -81,11 +83,7 @@ public class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppend
     
     private synchronized void doLoadEntityBody(boolean auto) {
         postLoadedFlag.set(true);
-        form = new NameValueCollection<>();
-        files = new NameValueCollection<>();
-
         
-
         if (isChunked) {
             throw new UnsupportedOperationException("Not supported chunked encoding.");
         } else if (auto && isFormUrlEncoded) {

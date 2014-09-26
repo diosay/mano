@@ -62,7 +62,7 @@ public class HttpChannel extends AioSocketChannel implements HttpContext {
     boolean isCompleted;
 
     void start() {
-        buffer.buffer.clear();
+        buffer.clear();
         request = null;
         phase = REQUEST_LINE;
     }
