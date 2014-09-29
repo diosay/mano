@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2014 The MANO Authors. 
- * All rights reserved. Use is subject to license terms. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved. 
  * 
  * See more http://mano.diosay.com/
  * 
@@ -82,7 +81,7 @@ public class AioSocketChannel implements Channel {
                         } finally {
                             readLocker.release();
                         }
-                        onFlushed(msg);
+                        flushed(msg);
                         msg = null;
                     } else {
                         writeLocker.release(state);
@@ -93,7 +92,10 @@ public class AioSocketChannel implements Channel {
         });
     }
 
-    protected void onFlushed(Message msg) {
+    protected void flushed(Message msg) {
+    }
+    protected void failed(Throwable ex){
+        
     }
 
     @Override
@@ -115,7 +117,7 @@ public class AioSocketChannel implements Channel {
         synchronized (paddings) {
             try {
                 paddings.forEach((msg) -> {
-                    onFlushed(msg);
+                    flushed(msg);
                 });
             } catch (Throwable ex) {
                 //ignored

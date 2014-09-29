@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2014 The MANO Authors. 
- * All rights reserved. Use is subject to license terms. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved. 
  * 
  * See more http://mano.diosay.com/
  * 
@@ -10,7 +9,6 @@ package com.diosay.mano.io;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import static mano.net.ByteArrayBuffer.bytesIndexOf;
 
 /**
  * 表示一个通道缓冲区。

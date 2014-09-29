@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2014 The MANO Authors. 
- * All rights reserved. Use is subject to license terms. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved. 
  * 
  * See more http://mano.diosay.com/
  * 
@@ -22,6 +21,26 @@ public class HttpFormUrlEncodedDecoder implements HttpEntityBodyDecoder {
     String line;
     boolean done;
 
+    private <T extends HttpEntityBodyAppender> void line(ChannelBuffer buffer, T appender) {
+        line = buffer.readln(appender.getEncoding());
+        if (line == null && buffer.remaining() == appender.getContentLength()) {
+            line = new String(buffer.array(), buffer.offset() + buffer.position(), buffer.remaining(), appender.getEncoding());
+            buffer.position(buffer.limit());
+        }
+        if (line != null) {
+            temp = null;
+            done = true;
+            HashMap<String, String> map = new HashMap<>();
+            HttpUtil.queryStringToMap(line, map,appender.getEncoding());
+            line = null;
+            map.entrySet().forEach(item -> {
+                appender.appendFormItem(item.getKey(), item.getValue());
+            });
+            appender.notifyDone();
+
+        }
+    }
+
     @Override
     public <T extends HttpEntityBodyAppender> void onRead(ChannelBuffer buffer, T appender) {
         if (done) {
@@ -29,37 +48,13 @@ public class HttpFormUrlEncodedDecoder implements HttpEntityBodyDecoder {
             return;
         }
         if (buffer.capacity() >= appender.getContentLength()) {
-            line = buffer.readln(appender.getEncoding());
-            if (line != null) {
-                temp=null;
-                done=true;
-                HashMap<String, String> map = new HashMap<>();
-                HttpUtil.queryStringToMap(line, map);
-                line=null;
-                map.entrySet().forEach(item -> {
-                    appender.appendFormItem(item.getKey(), item.getValue());
-                });
-                appender.notifyDone();
-                
-            }
+            line(buffer, appender);
         } else {
             if (temp == null) {
                 temp = new ChannelBuffer((int) appender.getContentLength());
             }
             buffer.buffer.get(temp.array(), temp.offset() + temp.position(), buffer.buffer.remaining());
-            line = temp.readln(appender.getEncoding());
-            if (line != null) {
-                temp=null;
-                done=true;
-                HashMap<String, String> map = new HashMap<>();
-                HttpUtil.queryStringToMap(line, map);
-                line=null;
-                map.entrySet().forEach(item -> {
-                    appender.appendFormItem(item.getKey(), item.getValue());
-                });
-                appender.notifyDone();
-                
-            }
+            line(temp, appender);
         }
     }
 

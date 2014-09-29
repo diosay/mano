@@ -12,12 +12,13 @@
             <handler class="mano.util.logging.ConsoleHandler"/>
         </logger>
         <services>
-            <service name="cache.service" class="mano.caching.CacheService"></service>
-            <service name="http.service" class="com.diosay.mano.web.HttpService">
+            <service name="httpsession.service" class="mano.web.HttpSessionService"></service>
+            <service name="http.service" class="mano.web.runtime.HttpService">
                 <property name="config_file">{server.dir}/conf/server.xml</property>
                 <property name="buffer_size">8k</property>
                 <property name="max_connections">1024</property>
                 <property name="webapp.config_path">{server.dir}/conf/apps</property>
+                <property name="session:service">httpsession.service</property>
                 <property name="connection:http:address">0.0.0.0:9999</property>
                 <property name="connection:http:disabled">false</property>
             </service>
@@ -37,7 +38,7 @@
             </request>
             
             <modules>
-                <add name="static_file_module" class="mano.web.StaticFileModule">
+                <add name="static_file_module" class="mano.web.modules.StaticFileModule">
                     <!--http://www.w3school.com.cn/media/media_mimeref.asp-->
                     
                     <property name="ext:htm">text/html</property>
@@ -56,7 +57,7 @@
                     <property name="ext:rar">application/octet-stream</property>
                 </add>
                 
-                <add name="url_route_module" class="mano.web.UrlRouteModule">
+                <add name="url_routing_module" class="mano.web.modules.UrlRoutingModule">
                     <property name="def.mime">text/html</property>
                     <property name="def.encoding">utf-8</property>
                     <property name="inf.dir">{app.dir}/WEB-INF</property>

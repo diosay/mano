@@ -1,28 +1,16 @@
 /*
- * Copyright (C) 2014 The MANO Authors. 
- * All rights reserved. Use is subject to license terms. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved. 
  * 
  * See more http://mano.diosay.com/
  * 
  */
 package com.diosay.mano.io;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.StandardSocketOptions;
-import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousChannelGroup;
-import java.nio.channels.AsynchronousServerSocketChannel;
-import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.CompletionHandler;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import mano.DateTime;
-import mano.http.HttpStatus;
-import mano.net.ByteArrayBuffer;
 
 /**
  * 服务器网络启动程序。

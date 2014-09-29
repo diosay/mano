@@ -1,11 +1,10 @@
 /*
- * Copyright (C) 2014 The MANO Authors. 
- * All rights reserved. Use is subject to license terms. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved. 
  * 
  * See more http://mano.diosay.com/
  * 
  */
-package mano.web;
+package mano.web.modules;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -36,13 +35,24 @@ import mano.caching.LruCacheProvider;
 import mano.http.HttpContext;
 import mano.http.HttpModule;
 import mano.util.Utility;
+import mano.web.ActionFilter;
+import mano.web.ActionResult;
+import mano.web.Controller;
+import mano.web.Filter;
+import mano.web.FilterGroup;
+import mano.web.PathParam;
+import mano.web.UrlMapping;
+import mano.web.ViewContext;
+import mano.web.ViewEngine;
+import mano.web.ViewResult;
+import mano.web.WebApplication;
 
 /**
  * 通过 URL路由并调用 java 类和方法的模块。
  *
  * @author jun <jun@diosay.com>
  */
-public class UrlRouteModule implements HttpModule {
+public class UrlRoutingModule implements HttpModule {
 
     class JarScanner {
 

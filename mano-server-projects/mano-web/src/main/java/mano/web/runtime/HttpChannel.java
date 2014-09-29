@@ -1,15 +1,13 @@
 /*
- * Copyright (C) 2014 The MANO Authors. 
- * All rights reserved. Use is subject to license terms. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved. 
  * 
  * See more http://mano.diosay.com/
  * 
  */
-package com.diosay.mano.web;
+package mano.web.runtime;
 
 import com.diosay.mano.io.AioSocketChannel;
 import com.diosay.mano.io.ChannelBuffer;
-import com.diosay.mano.io.ChannelHanlder;
 import com.diosay.mano.io.Listener;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.charset.Charset;
@@ -52,7 +50,6 @@ public class HttpChannel extends AioSocketChannel implements HttpContext {
     public static final int LOAD_HEADER = 2;
     public static final int RESPONSE = 3;
     int phase;
-    //ChannelHanlder<? extends HttpChannel> handler;
     ChannelBuffer buffer;
     HttpRequestImpl request;
     HttpResponseImpl response;
@@ -84,13 +81,7 @@ public class HttpChannel extends AioSocketChannel implements HttpContext {
         }
 
         if (info == null) {
-
-//            response = new HttpResponseImpl();
-//            response.channel = this;
-//
-//            response.write("hello");
-//            response.end();
-            return true;
+            return false;
         }
         info.serviceLoader=((HttpService)this.getListener().getGroup()).loader;
         info.service=(com.diosay.mano.service.Service)this.getListener().getGroup();

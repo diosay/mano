@@ -1,13 +1,14 @@
 /*
- * Copyright (C) 2014 The MANO Authors. 
- * All rights reserved. Use is subject to license terms. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved. 
  * 
  * See more http://mano.diosay.com/
  * 
  */
-package mano.caching;
+package mano.web;
 
 import java.util.Map;
+import mano.caching.CacheProvider;
+import mano.caching.HashCacheProvider;
 import mano.service.Service;
 import mano.service.ServiceContainer;
 import mano.service.ServiceProvider;
@@ -16,7 +17,7 @@ import mano.service.ServiceProvider;
  *
  * @author jun <jun@diosay.com>
  */
-public class CacheService extends Service implements ServiceProvider {
+public class HttpSessionService extends Service implements ServiceProvider {
 
     HashCacheProvider provider;
 

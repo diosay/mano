@@ -22,7 +22,6 @@ import mano.otpl.emit.Interpreter;
 import mano.otpl.emit.OpCode;
 import mano.util.LinkedMap;
 import mano.util.Utility;
-import mano.util.logging.LoggerOLD;
 import mano.web.ViewContext;
 import mano.web.ViewEngine;
 
@@ -34,7 +33,6 @@ public class OtplViewEngine extends ViewEngine {
     
     EmitParser parser=new EmitParser();
     Interpreter interpreter = new Interpreter();
-    LoggerOLD logger = LoggerOLD.getDefault();//TODO:
     
     @Override
     public void render(ViewContext service) {
@@ -64,11 +62,11 @@ public class OtplViewEngine extends ViewEngine {
             interpreter.setOut(proxy);
             interpreter.exec(target_file.toString());
         } catch (Exception ex) {
-            logger.error(null, ex);
+            //logger.error(null, ex);
             try {
                 service.getContext().getResponse().write(ex.getMessage());                
             } catch (Exception e) {
-                logger.error(null, e);
+                //logger.error(null, e);
             }
         }
     }

@@ -1,12 +1,11 @@
-package com.diosay.mano.server;
-
 /*
- * Copyright (C) 2014 The MANO Authors. 
- * All rights reserved. Use is subject to license terms. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved. 
  * 
  * See more http://mano.diosay.com/
  * 
  */
+package com.diosay.mano.server;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.NoSuchElementException;
@@ -320,18 +319,18 @@ public class Bootstrap extends ContextClassLoader implements ServiceProvider {
     public static void main(String[] args) {
         Bootstrap server = new Bootstrap();
 //
-//        String lib_path="E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\target\\build\\lib";
-//        String web_path="E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\src\\main\\webapp";
-//        
-//        lib_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\target\\build\\lib";
-//        web_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\src\\main\\webapp";
-//        
-//        
-//        
-//        Mano.setProperty("manoserver.testing.test_webapp.config_file", web_path);
-//        Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", lib_path);
-//        server.start("E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\src\\resources\\conf\\server.xml", "E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\target\\build");
-        server.start(null, null);
+        String lib_path="E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\target\\build\\lib";
+        String web_path="E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\src\\main\\webapp";
+        
+        lib_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\target\\build\\lib";
+        web_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\src\\main\\webapp";
+        
+        
+        
+        Mano.setProperty("manoserver.testing.test_webapp.config_file", web_path);
+        Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", lib_path);
+        server.start("E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\src\\resources\\conf\\server.xml", "E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\target\\build");
+        //server.start(null, null);
         server.loop();
     }
 

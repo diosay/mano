@@ -1,13 +1,11 @@
 /*
- * Copyright (C) 2014 The MANO Authors. 
- * All rights reserved. Use is subject to license terms. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved. 
  * 
  * See more http://mano.diosay.com/
  * 
  */
-package com.diosay.mano.web;
+package mano.web.runtime;
 
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -15,16 +13,12 @@ import mano.InvalidOperationException;
 import mano.http.HttpEntityBodyAppender;
 import mano.http.HttpEntityBodyDecoder;
 import mano.http.HttpFormUrlEncodedDecoder;
-import mano.http.HttpFormUrlEncodedParser;
 import mano.http.HttpHeaderCollection;
 import mano.http.HttpMethod;
 import mano.http.HttpMultipartDecoder;
-import mano.http.HttpMultipartParser;
 import mano.http.HttpPostFile;
 import mano.http.HttpRequest;
 import mano.http.HttpVersion;
-import mano.net.Channel;
-import mano.net.ChannelHandler;
 import mano.util.NameValueCollection;
 
 /**

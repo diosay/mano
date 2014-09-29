@@ -5,7 +5,7 @@
  * See more http://mano.diosay.com/
  * 
  */
-package com.diosay.mano.web;
+package mano.web.runtime;
 
 import com.diosay.mano.io.AbstractChannelGroup;
 import com.diosay.mano.io.ChannelBuffer;
@@ -22,7 +22,6 @@ import java.util.concurrent.Executors;
 import mano.ContextClassLoader;
 import mano.Mano;
 import mano.http.HttpModuleSettings;
-import mano.net.ByteArrayBuffer;
 import mano.service.ServiceManager;
 import mano.util.NameValueCollection;
 import mano.util.Pool;
@@ -60,7 +59,7 @@ public class HttpService extends AbstractChannelGroup implements Service {
 
     @Override
     public String getName() {
-        return "http-service";
+        return name;
     }
 
     @Override

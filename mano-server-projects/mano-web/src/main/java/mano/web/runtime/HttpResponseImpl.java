@@ -1,16 +1,14 @@
 /*
- * Copyright (C) 2014 The MANO Authors. 
- * All rights reserved. Use is subject to license terms. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved. 
  * 
  * See more http://mano.diosay.com/
  * 
  */
-package com.diosay.mano.web;
+package mano.web.runtime;
 
 import com.diosay.mano.io.ByteArrayMessage;
 import com.diosay.mano.io.ByteBufferMessage;
 import com.diosay.mano.io.Channel;
-import com.diosay.mano.io.ChannelBuffer;
 import com.diosay.mano.io.ChannelHanlder;
 import com.diosay.mano.io.FileReginMessage;
 import com.diosay.mano.io.Message;
@@ -26,7 +24,6 @@ import mano.http.HttpCookieCollection;
 import mano.http.HttpHeader;
 import mano.http.HttpHeaderCollection;
 import mano.http.HttpResponse;
-import mano.net.DBuffer;
 import mano.util.LockState;
 
 /**

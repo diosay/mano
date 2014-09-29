@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2014 The MANO Authors. 
- * All rights reserved. Use is subject to license terms. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved. 
  * 
  * See more http://mano.diosay.com/
  * 
@@ -11,8 +10,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
 import mano.InvalidOperationException;
-import mano.net.Channel;
-import mano.net.ChannelHandler;
 import mano.util.NameValueCollection;
 import mano.util.Utility;
 
@@ -195,7 +192,7 @@ public abstract class HttpRequest {
      * 使用自定义处理程序载入并处理 HTTP 请求实体正文。
      *
      * @param decoder 解码程序。
-     * @throws ark.InvalidOperationException
+     * @throws InvalidOperationException
      */
     public abstract void loadEntityBody(HttpEntityBodyDecoder decoder) throws Exception;
 

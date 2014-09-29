@@ -1,12 +1,10 @@
 /*
- * Copyright (C) 2014 The MANO Authors. 
- * All rights reserved. Use is subject to license terms. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved. 
  * 
  * See more http://mano.diosay.com/
  * 
  */
-
-package com.diosay.mano.web;
+package mano.web.runtime;
 
 import com.diosay.mano.io.Channel;
 import com.diosay.mano.io.Listener;
