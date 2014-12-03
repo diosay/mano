@@ -14,52 +14,60 @@ import java.util.Map;
  *
  * @author jun <jun@diosay.com>
  */
-public final class HttpMethod implements Comparable<HttpMethod> {
+public enum HttpMethod implements Comparable<HttpMethod> {
 
     /**
      * OPTIONS 方法。
      */
-    public static final HttpMethod OPTIONS = new HttpMethod("OPTIONS");
+    OPTIONS("OPTIONS"),
 
     /**
      * GET 方法。
      */
-    public static final HttpMethod GET = new HttpMethod("GET");
+    GET("GET"),
 
     /**
      * HEAD 方法。
      */
-    public static final HttpMethod HEAD = new HttpMethod("HEAD");
+    HEAD("HEAD"),
 
     /**
      * POST 方法。
      */
-    public static final HttpMethod POST = new HttpMethod("POST");
+    POST("POST"),
 
     /**
      * PUT 方法。
      */
-    public static final HttpMethod PUT = new HttpMethod("PUT");
+    PUT("PUT"),
 
     /**
      * PATCH 方法。
      */
-    public static final HttpMethod PATCH = new HttpMethod("PATCH");
+    PATCH("PATCH"),
 
     /**
      * DELETE 方法。
      */
-    public static final HttpMethod DELETE = new HttpMethod("DELETE");
+    DELETE("DELETE"),
 
     /**
      * TRACE 方法。
      */
-    public static final HttpMethod TRACE = new HttpMethod("TRACE");
+    TRACE("TRACE"),
 
     /**
      * CONNECT 方法。
      */
-    public static final HttpMethod CONNECT = new HttpMethod("CONNECT");
+    CONNECT("CONNECT"),
+    /**
+     * 所有。
+     */
+    ALL("ALL"),
+    /**
+     * 未知。
+     */
+    UNKNOWN("UNKNOWN");
 
     private static final Map<String, HttpMethod> methodMap = new HashMap<>();
 
@@ -73,6 +81,7 @@ public final class HttpMethod implements Comparable<HttpMethod> {
         methodMap.put(DELETE.name, DELETE);
         methodMap.put(TRACE.name, TRACE);
         methodMap.put(CONNECT.name, CONNECT);
+        methodMap.put(ALL.name, ALL);
     }
 
     /**
@@ -80,11 +89,10 @@ public final class HttpMethod implements Comparable<HttpMethod> {
      * @param name
      * @return 
      */
-    public static HttpMethod valueOf(String name) {
+    public static HttpMethod get(String name) {
         if (name == null) {
             throw new NullPointerException("name");
         }
-
         name = name.trim();
         if (name.isEmpty()) {
             throw new IllegalArgumentException("empty name");
@@ -94,7 +102,9 @@ public final class HttpMethod implements Comparable<HttpMethod> {
         if (result != null) {
             return result;
         } else {
-            return new HttpMethod(name.toUpperCase());
+            result=UNKNOWN;
+            result.name=name.toUpperCase();
+            return result;
         }
     }
 
@@ -108,17 +118,16 @@ public final class HttpMethod implements Comparable<HttpMethod> {
      * 获取当前方法名称。
      * @return 
      */
-    public String name() {
+    public String value() {
         return name;
     }
 
-    @Override
-    public int hashCode() {
-        return name.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
+    /**
+     * 比较对象。
+     * @param obj
+     * @return 
+     */
+    public boolean equalWith(Object obj) {
         if (obj == null) {
             return false;
         } else if (obj instanceof HttpMethod) {
@@ -130,10 +139,5 @@ public final class HttpMethod implements Comparable<HttpMethod> {
     @Override
     public String toString() {
         return name;
-    }
-
-    @Override
-    public int compareTo(HttpMethod o) {
-        return name.compareTo(o.name);
     }
 }

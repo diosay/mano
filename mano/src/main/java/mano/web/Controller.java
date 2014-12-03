@@ -9,8 +9,6 @@ package mano.web;
 import mano.ContextClassLoader;
 import mano.http.HttpContext;
 import mano.http.HttpPostFile;
-import mano.http.HttpRequest;
-import mano.http.HttpResponse;
 import mano.util.json.JsonConvert;
 import mano.util.json.JsonConverter;
 import mano.util.logging.Logger;
@@ -18,41 +16,82 @@ import mano.util.logging.Logger;
 /**
  * 封装了一组 action 与常用方法的控制器抽象类。
  *
- * @author jun <jun@diosay.com>
+ * @author junhwong
  */
-public abstract class Controller {
+public abstract class Controller implements ActionHandler {
 
-    //private HttpResponse response;
-    //private HttpRequest request;
-    private HttpContext context;
     private ViewContext service;
     private JsonConverter jsonConverter;
 
-    private final void setService(ViewContext rs) {
-        service = rs;
-        service.setEncoding(rs.getContext().getResponse().charset());
-        context = rs.getContext();
-    }
-
-    private ViewContext getService() {
-        if (this.service == null) {
-            throw new mano.InvalidOperationException("未初始化服务。");
+    @Override
+    public final void init(ViewContext context) {
+        if (context == null) {
+            throw new NullPointerException("context");
         }
-        return this.service;
+        this.service = context;
+        onInit();
     }
 
+    @Override
+    public final void dispose() {
+        try {
+            onDispose();
+        } finally {
+            service = null;
+            jsonConverter = null;
+        }
+    }
+
+    /**
+     * 当初始化时调用。
+     */
+    protected void onInit() {
+
+    }
+
+    /**
+     * 当释放资源时调用。
+     */
+    protected void onDispose() {
+
+    }
+
+    /**
+     * 设置用于在当前请求传递的键值。
+     *
+     * @param name
+     * @param value
+     */
     public void set(String name, Object value) {
-        getService().set(name, value);
+        service.set(name, value);
     }
 
+    /**
+     * 获取一个值。
+     *
+     * @param name
+     * @return
+     */
     public Object get(String name) {
-        return getService().get(name);
+        return service.get(name);
     }
 
+    /**
+     * 根据name获取一个当前请求所关联的参数。
+     *
+     * @param name
+     * @return
+     */
     public String query(String name) {
         return getContext().getRequest().query().get(name);
     }
 
+    /**
+     * 获取一个表单值。
+     *
+     * @param name
+     * @return
+     */
     public String form(String name) {
         if (getContext().getRequest().form() == null) {
             return null;
@@ -60,6 +99,12 @@ public abstract class Controller {
         return getContext().getRequest().form().get(name);
     }
 
+    /**
+     * 获取一个上传文件。
+     *
+     * @param name
+     * @return
+     */
     public HttpPostFile file(String name) {
         if (getContext().getRequest().files() == null) {
             return null;
@@ -67,10 +112,22 @@ public abstract class Controller {
         return getContext().getRequest().files().get(name);
     }
 
+    /**
+     * 设置一个 session。
+     *
+     * @param name
+     * @param value
+     */
     public void session(String name, Object value) {
         getContext().getSession().set(name, value);
     }
 
+    /**
+     * 获取一个session。
+     *
+     * @param name
+     * @return
+     */
     public Object session(String name) {
         try {
             return getContext().getSession().get(name);
@@ -105,26 +162,26 @@ public abstract class Controller {
      * 设置一个默认 视图结果。
      */
     protected void view() {
-        view(null,null);
+        view(null, null);
     }
 
     protected void view(String action) {
-        view(action,null);
+        view(action, null);
     }
 
     protected void view(String action, String controller) {
         if (action != null) {
-            getService().setAction(action);
+            service.setAction(action);
         }
         if (controller != null) {
-            getService().setController(controller);
+            service.setController(controller);
         }
-        getService().setResult(new ViewResult());
+        service.setResult(new ViewResult());
     }
 
     protected void template(String path) {
-        getService().setPath(path);
-        getService().setResult(new ViewResult());
+        service.setPath(path);
+        service.setResult(new ViewResult());
     }
 
     protected void text(String content) {
@@ -175,7 +232,7 @@ public abstract class Controller {
      * @return
      */
     public HttpContext getContext() {
-        return getService().getContext();
+        return service.getContext();
     }
 
     /**

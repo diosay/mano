@@ -13,12 +13,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- *
- * @author jun <jun@diosay.com>
+ * 表示一个模块。
+ * @author junhwong
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
 public @interface Module {
+    /**
+     * 获取或设置模块的名称。
+     * @return 
+     */
     String value() default "";
 }

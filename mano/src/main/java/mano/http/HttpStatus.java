@@ -14,113 +14,90 @@ import java.lang.annotation.ElementType;
 import java.lang.reflect.Field;
 
 /**
+ * HHTP 规范定义的响应状态。
  *
  * @author jun <jun@diosay.com>
  */
-public final class HttpStatus {
+public enum HttpStatus {
 
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.FIELD)
-    @Documented
-    public @interface HttpStatusDescription {
+    Continue(100, "Continue"),
+    SwitchingProtocols(101, "Switching Protocols"),
+    OK(200, "OK"),
+    Created(201, "Created"),
+    Accepted(202, "Accepted"),
+    NonAuthoritativeInformation(203, "Non-Authoritative Information"),
+    NoContent(204, "No Content"),
+    ResetContent(205, "Reset Content"),
+    PartialContent(206, "Partial Content"),
+    MultipleChoices(300, "Multiple Choices"),
+    MovedPermanently(301, "Moved Permanently"),
+    Found(302, "Found"),
+    SeeOther(303, "See Other"),
+    NotModified(304, "Not Modified"),
+    UseProxy(305, "Use Proxy"),
+    TemporaryRedirect(307, "Temporary Redirect"),
+    BadRequest(400, "Bad Request"),
+    Unauthorized(401, "Unauthorized"),
+    Forbidden(403, "Forbidden"),
+    NotFound(404, "Not Found"),
+    MethodNotAllowed(405, "Method Not Allowed"),
+    NotAcceptable(406, "Not Acceptable"),
+    ProxyAuthenticationRequired(407, "Proxy Authentication Required"),
+    RequestTimeout(408, "Request Timeout"),
+    Conflict(409, "Conflict"),
+    Gone(410, "Gone"),
+    LengthRequired(411, "Length Required"),
+    PreconditionFailed(412, "Precondition Failed"),
+    RequestEntityTooLarge(413, "Request Entity Too Large"),
+    RequestURITooLong(414, "Request URI Too Long"),
+    RequestedRangeNotSatisfiable(416, "Requested Range Not Satisfiable"),
+    InternalServerError(500, "Internal Server Error"),
+    NotImplemented(501, "Not Implemented"),
+    BadGateway(502, "Bad Gateway"),
+    ServiceUnavailable(503, "Service Unavailable"),
+    GatewayTimeout(504, "Gateway Timeout"),
+    HTTPVersionNotSupported(505, "HTTP Version Not Supported"),
+    Unknown(0, "Unknown");
+    private String description;
+    private int status;
 
-        public String desc() default "";
+    private HttpStatus(int status,String desc){
+        this.status=status;
+        this.description=desc;
     }
-
-    @HttpStatusDescription(desc = "Continue")
-    public final static int Continue = 100;
-    @HttpStatusDescription(desc = "Switching Protocols")
-    public final static int SwitchingProtocols = 101;
-
-    @HttpStatusDescription(desc = "OK")
-    public final static int OK = 200;
-    @HttpStatusDescription(desc = "Created")
-    public final static int Created = 201;
-    @HttpStatusDescription(desc = "Accepted")
-    public final static int Accepted = 202;
-    @HttpStatusDescription(desc = "Non-Authoritative Information")
-    public final static int NonAuthoritativeInformation = 203;
-    @HttpStatusDescription(desc = "No Content")
-    public final static int NoContent = 204;
-    @HttpStatusDescription(desc = "Reset Content")
-    public final static int ResetContent = 205;
-    @HttpStatusDescription(desc = "Partial Content")
-    public final static int PartialContent = 206;
-
-    @HttpStatusDescription(desc = "Multiple Choices")
-    public final static int MultipleChoices = 300;
-    @HttpStatusDescription(desc = "Moved Permanently")
-    public final static int MovedPermanently = 301;
-    @HttpStatusDescription(desc = "Found")
-    public final static int Found = 302;
-    @HttpStatusDescription(desc = "See Other")
-    public final static int SeeOther = 303;
-    @HttpStatusDescription(desc = "Not Modified")
-    public final static int NotModified = 304;
-    @HttpStatusDescription(desc = "Use Proxy")
-    public final static int UseProxy = 305;
-    @HttpStatusDescription(desc = "Temporary Redirect")
-    public final static int TemporaryRedirect = 307;
-
-    @HttpStatusDescription(desc = "Bad Request")
-    public final static int BadRequest = 400;
-    @HttpStatusDescription(desc = "Unauthorized")
-    public final static int Unauthorized = 401;
-    @HttpStatusDescription(desc = "Forbidden")
-    public final static int Forbidden = 403;
-    @HttpStatusDescription(desc = "Not Found")
-    public final static int NotFound = 404;
-    @HttpStatusDescription(desc = "Method Not Allowed")
-    public final static int MethodNotAllowed = 405;
-    @HttpStatusDescription(desc = "Not Acceptable")
-    public final static int NotAcceptable = 406;
-    @HttpStatusDescription(desc = "Proxy Authentication Required")
-    public final static int ProxyAuthenticationRequired = 407;
-    @HttpStatusDescription(desc = "Request Timeout")
-    public final static int RequestTimeout = 408;
-    @HttpStatusDescription(desc = "Conflict")
-    public final static int Conflict = 409;
-    @HttpStatusDescription(desc = "Gone")
-    public final static int Gone = 410;
-    @HttpStatusDescription(desc = "Length Required")
-    public final static int LengthRequired = 411;
-    @HttpStatusDescription(desc = "Precondition Failed")
-    public final static int PreconditionFailed = 412;
-    @HttpStatusDescription(desc = "Request Entity Too Large")
-    public final static int RequestEntityTooLarge = 413;
-    @HttpStatusDescription(desc = "Request URI Too Long")
-    public final static int RequestURITooLong = 414;
-    @HttpStatusDescription(desc = "Requested Range Not Satisfiable")
-    public final static int RequestedRangeNotSatisfiable = 416;
-
-    @HttpStatusDescription(desc = "Internal Server Error")
-    public final static int InternalServerError = 500;
-
-    @HttpStatusDescription(desc = "Not Implemented")
-    public final static int NotImplemented = 501;
-    @HttpStatusDescription(desc = "Bad Gateway")
-    public final static int BadGateway = 502;
-    @HttpStatusDescription(desc = "Service Unavailable")
-    public final static int ServiceUnavailable = 503;
-    @HttpStatusDescription(desc = "Gateway Timeout")
-    public final static int GatewayTimeout = 504;
-    @HttpStatusDescription(desc = "HTTP Version Not Supported")
-    public final static int HTTPVersionNotSupported = 505;
-
-    public final static String getKnowDescription(int status) throws NullPointerException {
-        for (Field m : HttpStatus.class.getFields()) {
-
-            try {
-                if (m.getInt(null) == status) {
-                    HttpStatusDescription anno = m.getAnnotation(HttpStatusDescription.class);
-                    if (anno != null) {
-                        return anno.desc();
-                    }
-                }
-            } catch (Exception e) {
+    
+    /**
+     * 获取描述。
+     * @return 
+     */
+    public String getDescription(){
+        return this.description;
+    }
+    
+    /**
+     * 获取状态值。
+     * @return 
+     */
+    public int getStatus(){
+        return this.status;
+    }
+    
+    /**
+     * 获取值。
+     * @param status
+     * @param desc
+     * @return 
+     */
+    public static HttpStatus valueOf(int status,String desc){
+        for(HttpStatus item:HttpStatus.values()){
+            if(item.getStatus()==status){
+                return item;
             }
         }
-
-        throw new NullPointerException("状态 " + status + " 未定义");
+        HttpStatus result=HttpStatus.Unknown;
+        result.description=desc;
+        result.status=status;
+        return result;
     }
+    
 }

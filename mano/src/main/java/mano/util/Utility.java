@@ -276,13 +276,22 @@ public class Utility {
 
     public static double toDouble(Object obj) {
         if (obj == null) {
-            throw new java.lang.IllegalArgumentException("null is not a valid number.");
+            throw new IllegalArgumentException("null is not a valid number.");
         }
         return Double.parseDouble(obj.toString());
     }
 
     public static long toLong(Object obj) {
+        if (obj == null) {
+            throw new IllegalArgumentException("null is not a valid number.");
+        }
         return Long.parseLong(obj.toString());
+    }
+    public static long toInt(Object obj) {
+        if (obj == null) {
+            throw new IllegalArgumentException("null is not a valid number.");
+        }
+        return Integer.parseInt(obj.toString());
     }
 
     public static Object asNumber(int type, double obj) {

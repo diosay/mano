@@ -18,23 +18,32 @@ public class HttpException extends Exception {
      */
     private static final long serialVersionUID = 1L;
 
-    private int _httpCode = 0;
+    private HttpStatus httpStatus;
 
-    public HttpException(int httpCode, String message) {
-        super(message);
-        this._httpCode = httpCode;
+    public HttpException(HttpStatus status) {
+        super();
+        httpStatus = status;
     }
     
-    public HttpException(int httpCode, Throwable t) {
+    public HttpException(HttpStatus status, String message) {
+        super(message);
+        httpStatus = status;
+    }
+    
+    public HttpException(HttpStatus status, Throwable t) {
         super(t);
-        this._httpCode = httpCode;
+        httpStatus = status;
+    }
+    public HttpException(Throwable t) {
+        super(t);
+        httpStatus = HttpStatus.InternalServerError;
     }
 
     /*
      * 获取要返回给客户端的 HTTP 响应状态代码。
      */
-    public int getHttpCode() {
-        return this._httpCode;
+    public HttpStatus getHttpStatus() {
+        return httpStatus;
     }
 
 }

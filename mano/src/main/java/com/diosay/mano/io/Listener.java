@@ -88,7 +88,6 @@ public class Listener {
             @Override
             public void completed(AsynchronousSocketChannel remote, AsynchronousServerSocketChannel local) {
                 
-                System.out.println("try");
                 synchronized (server.channelCount) {
                     if (server.channelCount.get() > 1024) {
                         try {
@@ -112,7 +111,6 @@ public class Listener {
                 }
                 server.add(create(remote));
                 if (!stopped && started) {
-                    System.out.println("c...");
                     local.accept(local, this);
                 }
             }

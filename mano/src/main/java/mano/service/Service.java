@@ -6,73 +6,29 @@
  */
 package mano.service;
 
-import java.util.Map;
 import java.util.Properties;
 
 /**
- *
- * @author jun <jun@diosay.com>
+ * 表示一个运行时服务。
+ * @author junhwong
  */
-public abstract class Service implements com.diosay.mano.service.Service {
-
-    private ServiceContainer container;
-    private Properties properties;
+public interface Service {
     
-    protected Service() {
-        
-        properties = new Properties();
-        container = ServiceManager.getInstance();
-    }
-
-    public void init(ServiceContainer container, Map<String, String> params) {
-        this.container = container;
-
-    }
-
-    @Override
-    public Properties getProperties() {
-        return properties;
-    }
-
-    public String getProperty(String key) {
-        return properties.getProperty(key);
-    }
-
-    public String getProperty(String key, String def) {
-        return properties.getProperty(key, def);
-    }
-
-    public void stop() {
-        
-    }
-
-    public void onStart() {
-        ServiceManager.getInstance().regisiter(this);
-    }
-
-    public ServiceContainer getContainer() {
-        return container;
-    }
+    /**
+     * 获取与此实例关联的配置属性。
+     * @return 
+     */
+    Properties getProperties();
     
-    public void process(Intent intent) throws Exception{
-        
-    }
-
-    @Override
-    public void init() throws Exception {
-    }
+    /**
+     * 获取当前的唯一服务名称。
+     * @return 
+     */
+    String getName();
     
-    public abstract String getServiceName();
-    
-    @Override
-    public String getName(){
-        return getServiceName();
-    }
-
-    @Override
-    public String toString() {
-        return this.getClass() + "[" + getServiceName() + "]";
-    }
-    
+    /**
+     * 在启动之前初始化该服务。
+     */
+    void init() throws Exception;
     
 }

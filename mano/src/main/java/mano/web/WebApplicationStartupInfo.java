@@ -6,7 +6,7 @@
  */
 package mano.web;
 
-import com.diosay.mano.service.Service;
+import mano.service.Service;
 import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

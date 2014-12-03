@@ -13,13 +13,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * queryString 或 form 参数
+ * cookie 参数
  * @author junhwong
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.PARAMETER})
-public @interface RequestParam {
+public @interface CookieParam {
     /**
      * 名称。
      * @return 

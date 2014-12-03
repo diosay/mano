@@ -1,9 +1,10 @@
 /*
- * Copyright (C) 2014 The MANO Project. All rights reserved. 
+ * Copyright (C) 2014 The MANO Project. All rights reserved.
  * 
  * See more http://mano.diosay.com/
  * 
  */
+
 package mano.web;
 
 import java.lang.annotation.Documented;
@@ -13,16 +14,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * queryString 或 form 参数
- * @author junhwong
+ * 重新定义一个名称。
+ * @author jun <jun@diosay.com>
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.PARAMETER})
-public @interface RequestParam {
+@Target({ElementType.TYPE,ElementType.METHOD})
+public @interface Named {
     /**
-     * 名称。
+     * 获取或设置名称。
      * @return 
      */
-    String value();
+    String value() default "";
 }

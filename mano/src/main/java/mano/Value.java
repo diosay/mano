@@ -10,6 +10,7 @@ package mano;
  * 表示一个对象的 Wrapper
  *
  * @author jun <jun@diosay.com>
+ * @deprecated 
  */
 public class Value<T> {
 

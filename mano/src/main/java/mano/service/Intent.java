@@ -49,6 +49,11 @@ public final class Intent implements Callable<Intent> {
         extras.put(key, value);
     }
 
+    /**
+     * 获取用于通信双方的参数。
+     * @param key
+     * @return 
+     */
     public final Object get(String key) {
         return extras.get(key);
     }
@@ -161,7 +166,7 @@ public final class Intent implements Callable<Intent> {
         //uri://service/action
         
         try {
-            Service service = ServiceManager.getInstance().getService(this.getServiceName());
+            AbstractService service = ServiceManager.get(this.getServiceName());
             if (service == null) {
                 throw new UnsupportedOperationException("This service is undefined:" + this.getServiceName());
             } else {
@@ -172,7 +177,8 @@ public final class Intent implements Callable<Intent> {
             if (callback != null) {
                 callback.run(this);
             }
-            throw ex;
+            throw ex; //TODO//
+            //return this;
         }
         if (callback != null) {
             callback.run(this);

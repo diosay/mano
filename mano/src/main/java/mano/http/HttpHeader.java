@@ -50,7 +50,9 @@ public class HttpHeader {
 
     public void text(String text) {
         _text = text;
-
+        if(text==null){
+            return;
+        }
         int index = text.indexOf(';');
         if (index > 0) {
             _value = text.substring(0, index);

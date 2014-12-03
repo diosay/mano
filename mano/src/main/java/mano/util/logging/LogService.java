@@ -52,8 +52,6 @@ public class LogService extends IntentService {
             Handler item = (Handler) intent.get("handler");
             if (item != null && !handlers.contains(item)) {
                 handlers.add(item);
-            } else {
-                
             }
         } else {
             throw new NoSuchMethodException("bbb");

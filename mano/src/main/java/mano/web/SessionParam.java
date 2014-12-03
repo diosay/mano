@@ -13,13 +13,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * queryString 或 form 参数
+ * session 参数
  * @author junhwong
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.PARAMETER})
-public @interface RequestParam {
+public @interface SessionParam {
     /**
      * 名称。
      * @return 

@@ -27,13 +27,13 @@ public interface HttpModule extends Disposable {
      * @param context 提供对用于为 HTTP 请求提供服务的上下文对象。
      * @return true 表示已接受该请求，否则 false。
      */
-    boolean handle(HttpContext context);
+    boolean handle(HttpContext context) throws Exception;
     
     /**
      * 筛选并处理 HTTP 请求。
      * @param context 提供对用于为 HTTP 请求提供服务的上下文对象。
      * @return true 表示已接受该请求，否则 false。
      */
-    boolean handle(HttpContext context,String tryPath);
+    boolean handle(HttpContext context,String tryPath) throws Exception;
     
 }

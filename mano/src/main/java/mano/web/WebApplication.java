@@ -6,18 +6,24 @@
  */
 package mano.web;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import mano.ContextClassLoader;
 import mano.Mano;
 import mano.PropertyContext;
 import mano.http.HttpContext;
 import mano.http.HttpException;
 import mano.http.HttpModule;
+import mano.http.HttpServer;
 import mano.http.HttpStatus;
 import mano.util.Utility;
 import mano.util.logging.Logger;
@@ -32,7 +38,7 @@ public class WebApplication extends PropertyContext {
     private Set<HttpModule> modules;
     private ContextClassLoader loader;
     private WebApplicationStartupInfo startupInfo;
-    private final HashMap<String, Object> items = new HashMap<>();
+    private final Map<String, Object> items = new ConcurrentHashMap<>();
 
     public ContextClassLoader getLoader() {
         return loader;
@@ -51,7 +57,8 @@ public class WebApplication extends PropertyContext {
     final void init(WebApplicationStartupInfo info, ContextClassLoader l) {
         startupInfo = info;
         loader = l;
-        this.setProperties(new Properties());
+        this.setProperties(info.settings);
+        this.onInit();
         modules = new LinkedHashSet<>();
         for (mano.http.HttpModuleSettings settings : info.modules.values()) {
             try {
@@ -64,7 +71,7 @@ public class WebApplication extends PropertyContext {
                 getLogger().warn("Failed to initialize the HTTP module:", ex);
             }
         }
-        this.onInit();
+
     }
 
     final void destory() {
@@ -124,33 +131,39 @@ public class WebApplication extends PropertyContext {
      */
     public void processRequest(HttpContext context) {
         boolean processed = false;
+        try {
 
-        ArrayList<String> paths = new ArrayList<>();
-        String path = context.getRequest().url().getPath();
-        paths.add(Utility.toPath(context.getServer().getVirtualPath(), path).toString());
-        if (true) {
-            for (String s : startupInfo.documents) {
-                paths.add(Utility.toPath(context.getServer().getVirtualPath(), path, s).toString());
+            ArrayList<String> paths = new ArrayList<>();
+            String path = context.getRequest().url().getPath();
+            paths.add(Utility.toPath(context.getServer().getVirtualPath(), path).toString());
+            if (true) {
+                for (String s : startupInfo.documents) {
+                    paths.add(Utility.toPath(context.getServer().getVirtualPath(), path, s).toString());
+                }
+                paths.add(Utility.toPath(context.getServer().getVirtualPath(), path, startupInfo.controller, startupInfo.action).toString());
+                paths.add(Utility.toPath(context.getServer().getVirtualPath(), path, startupInfo.action).toString());
             }
-            paths.add(Utility.toPath(context.getServer().getVirtualPath(), path, startupInfo.controller, startupInfo.action).toString());
-            paths.add(Utility.toPath(context.getServer().getVirtualPath(), path, startupInfo.action).toString());
-        }
-        for (String p : paths) {
-            p = p.replace('\\', '/');
-            if (!p.startsWith("/")) {
-                p = "/" + p;
-            }
-            for (HttpModule module : modules) {
-                if (module.handle(context, p)) {
-                    processed = true;
+            for (String p : paths) {
+                p = p.replace('\\', '/');
+                if (!p.startsWith("/")) {
+                    p = "/" + p;
+                }
+                for (HttpModule module : modules) {
+
+                    if (module.handle(context, p)) {
+                        processed = true;
+                        break;
+                    }
+
+                }
+                if (processed) {
                     break;
                 }
             }
-            if (processed) {
-                break;
-            }
+        } catch (Exception ex) {
+            processed = true;
+            this.onError(context, ex);
         }
-
         if (!processed) {
             this.onError(context, new HttpException(HttpStatus.NotFound, "404 Not Found"));
         }
@@ -158,29 +171,95 @@ public class WebApplication extends PropertyContext {
         if (!context.isCompleted()) {
             context.getResponse().end();
         }
-
     }
 
     protected void onInit() {
     }
 
-    protected void onError(HttpContext context, Throwable t) {
-        HttpException ex;
-        if (t instanceof HttpException) {
-            ex = (HttpException) t;
-        } else {
-            ex = new HttpException(HttpStatus.InternalServerError, t);
+    private void printRoot(StringBuilder sb, Throwable t) {
+        if (t == null) {
+            return;
         }
+        sb.append("<b>root</b><p><pre>");
+        StringWriter sw = new StringWriter();
+        try (PrintWriter pw = new PrintWriter(sw)) {
+            pw.println();
+            t.printStackTrace(pw);
+        }
+        sb.append(sw.toString());
+        sb.append("</pre></p>");
+        printRoot(sb, t.getCause());
+    }
 
+    protected void onError(HttpContext context, Throwable t) {
+        StringBuilder sb = new StringBuilder();
+        if (t instanceof HttpException) {
+            HttpException ex = (HttpException) t;
+            if (!context.getResponse().headerSent()) {
+                sb.append("<html><head><title>")
+                        .append(ex.getHttpStatus().getStatus())
+                        .append(" Error")
+                        .append("</title></head><body>");
+                context.getResponse().status(ex.getHttpStatus().getStatus(), ex.getHttpStatus().getDescription());
+            }
+            if (ex.getMessage() != null) {
+                sb.append("<b>message</b><u>")
+                        .append(ex.getMessage())
+                        .append("</u>");
+            }
+            if (ex.getCause() != null) {
+                sb.append("<b>exception</b><p><pre>");
+                StringWriter sw = new StringWriter();
+                try (PrintWriter pw = new PrintWriter(sw)) {
+                    pw.println();
+                    ex.getCause().printStackTrace(pw);
+                }
+                sb.append(sw.toString());
+                sb.append("</pre></p>");
+                printRoot(sb, ex.getCause().getCause());
+            }
+            if (!context.getResponse().headerSent()) {
+                sb.append("<hr>")
+                        .append(context.getServer().getVersion());
+            }
+        } else {
+            if (!context.getResponse().headerSent()) {
+                sb.append("<html><head><title>")
+                        .append(HttpStatus.InternalServerError.getStatus())
+                        .append(" Error")
+                        .append("</title></head><body>");
+                context.getResponse().status(HttpStatus.InternalServerError.getStatus(), HttpStatus.InternalServerError.getDescription());
+            }
+            if (t.getMessage() != null) {
+                sb.append("<b>message</b><u>")
+                        .append(t.getMessage())
+                        .append("</u>");
+            }
+            sb.append("<b>exception</b><p><pre>");
+            StringWriter sw = new StringWriter();
+            try (PrintWriter pw = new PrintWriter(sw)) {
+                pw.println();
+                t.printStackTrace(pw);
+            }
+            sb.append(sw.toString());
+            sb.append("</pre></p>");
+            printRoot(sb, t.getCause());
+            if (!context.getResponse().headerSent()) {
+                sb.append("<hr>")
+                        .append(context.getServer().getVersion());
+            }
+        }
+        if (!context.getResponse().headerSent()) {
+
+        }
         try {
             context.getResponse().setHeader("Connection", "close");
-            context.getResponse().status(ex.getHttpCode());
         } catch (Exception e) {
             //ignored
         }
 
         try {
-            context.getResponse().write("<html><head><title>%d Error</title></head><body>%s<body></html>", ex.getHttpCode(), ex.getMessage());
+            context.getResponse().write(sb.toString());
         } catch (Exception e) {
             //ignored
         }
@@ -195,10 +274,34 @@ public class WebApplication extends PropertyContext {
         public String serverDirectory;
         public String webappDirectory;
         public String libDirectory;
+        public ClassLoader loader;
     }
 
     protected static final ServerStartupArgs createStartupArgs() {
         return new ServerStartupArgs();
+    }
+
+    public final HttpServer getServer() {
+        return startupInfo.getServerInstance();
+    }
+
+    /**
+     * 获取路由控制器包路径。
+     *
+     * @return
+     */
+    public URL[] getActionHandlerJarUrls() {
+        return this.getLoader().getURLs();
+    }
+
+    private ArrayList<Class<? extends ActionHandler>> handlers = new ArrayList<>();
+
+    public ArrayList<Class<? extends ActionHandler>> getActionHandlers() {
+        return handlers;
+    }
+
+    public void regisiterHandlers(Class<? extends ActionHandler> type) {
+        handlers.add(type);
     }
 
     /**
@@ -212,18 +315,18 @@ public class WebApplication extends PropertyContext {
             Mano.setProperty("manoserver.testing.test_webapp.config_file", args.webappDirectory);
             Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", args.libDirectory);
 
-            ContextClassLoader loader = new ContextClassLoader(Logger.getLog());
+            ContextClassLoader loader = new ContextClassLoader(Logger.getLog(), new URL[0], args.loader);
             loader.register(Utility.toPath(args.serverDirectory, "bin").toString());
             loader.register(Utility.toPath(args.serverDirectory, "lib").toString());
-            Object instance = loader.newInstance("com.diosay.mano.server.Bootstrap");
+            Class<?> instance = loader.loadClass("com.diosay.mano.server.Bootstrap");
 
-            Method startup = instance.getClass().getDeclaredMethod("debugStart", String.class, String.class);
+            Method startup = instance.getDeclaredMethod("debugStart", String.class, String.class, ContextClassLoader.class);
             if (startup == null) {
 
             }
             startup.setAccessible(true);
 
-            startup.invoke(instance, Utility.toPath(args.serverDirectory, "conf\\server.xml").toString(), args.serverDirectory);
+            startup.invoke(null, Utility.toPath(args.serverDirectory, "conf\\server.xml").toString(), args.serverDirectory, loader);
 
         } catch (Throwable ex) {
             ex.printStackTrace(System.err);

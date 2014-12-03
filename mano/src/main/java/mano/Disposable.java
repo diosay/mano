@@ -8,8 +8,12 @@ package mano;
 
 /**
  * 定义一种释放分配的资源的方法。
- * @author jun <jun@diosay.com>
+ * @author junhwong
  */
 public interface Disposable {
+    
+    /**
+     * 释放与当前实例关联的资源。
+     */
     void dispose();
 }

@@ -76,8 +76,13 @@ public class AioSocketChannel implements Channel {
                         try {
                             msg.process(AioSocketChannel.this, state);
                         } catch (Exception ex) {
-                            //onFailed(ex, msg);
-                            ex.printStackTrace();
+                            ChannelHanlder handler = getListener().getGroup().getHandler();
+                            try {
+                                handler.failed(ex, AioSocketChannel.this);
+                            } catch (Exception ex2) {
+                                failed(ex2);
+                            }
+                            handler = null;
                         } finally {
                             readLocker.release();
                         }
@@ -89,13 +94,15 @@ public class AioSocketChannel implements Channel {
                 }
                 flush();
             }
-        });
+        }
+        );
     }
 
     protected void flushed(Message msg) {
     }
-    protected void failed(Throwable ex){
-        
+
+    protected void failed(Throwable ex) {
+        ex.printStackTrace();
     }
 
     @Override

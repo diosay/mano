@@ -6,7 +6,6 @@
  */
 package mano.util.logging;
 
-import java.util.concurrent.ExecutionException;
 import mano.Action;
 import mano.DateTime;
 import mano.service.Intent;
@@ -22,17 +21,14 @@ public class Logger {
     protected Logger(){
         this.action=(intent)->{
             if (intent.isFaulted()) {
-                intent.getException().printStackTrace(System.out);
+                System.err.println("Logger Error:");
+                intent.getException().printStackTrace(System.err);
             }
         };
     }
     
     Logger(String name){
-        this.action=(intent)->{
-            if (intent.isFaulted()) {
-                intent.getException().printStackTrace(System.out);
-            }
-        };
+        this();
     }
     
     public static Logger getLog(){

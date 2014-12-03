@@ -16,6 +16,7 @@ import mano.Resettable;
  *
  * @author jun <jun@diosay.com>
  */
+@java.lang.Deprecated
 public abstract class HttpHandler<T extends HttpContext> implements Runnable,Resettable {
 
     private HttpHandler next;

@@ -57,7 +57,7 @@ public abstract class HttpResponse {
      * @throws ark.InvalidOperationException
      */
     public void status(int code) throws NullPointerException, InvalidOperationException {
-        this.status(code, HttpStatus.getKnowDescription(code));
+        this.status(code, HttpStatus.valueOf(code, "").getDescription());
     }
 
     /**
@@ -194,7 +194,7 @@ public abstract class HttpResponse {
     public void redirect(String url, boolean endResponse, boolean isPermanent) throws InvalidOperationException {
         this.setHeader("Location", url);
         try {
-            this.status(!isPermanent ? HttpStatus.TemporaryRedirect : HttpStatus.MovedPermanently);
+            this.status(!isPermanent ? HttpStatus.TemporaryRedirect.getStatus() : HttpStatus.MovedPermanently.getStatus());
         } catch (NullPointerException e) {
 
         }

@@ -23,7 +23,7 @@ public class SimpleFormatter implements LogFormatter {
         //error
         StringBuilder sb = new StringBuilder();
         sb.append(entry.getTime().toString(DateTime.FORMAT_ISO)).append(' ');
-        sb.append('[').append(entry.getLevel().value).append(']').append(' ');
+        sb.append('[').append(entry.getLevel().name).append(']').append(' ');
         sb.append('T').append(entry.getThreadId()).append(' ');
         if (entry.getSourceClassName() != null && !"".equals(entry.getSourceClassName().trim())) {
             sb.append(entry.getSourceClassName());

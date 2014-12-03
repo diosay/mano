@@ -11,6 +11,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import mano.http.HttpMethod;
 
 /**
  *
@@ -22,7 +23,7 @@ import java.lang.annotation.Target;
 public @interface UrlMapping {
 
     /**
-     * 获取或设置请求的URL映射。 如：/index/{var}/{var?}
+     * 获取或设置请求的URL映射。 如：/index/{var}/
      *
      * @return
      */
@@ -33,5 +34,5 @@ public @interface UrlMapping {
      *
      * @return
      */
-    int verb() default 0;
+    HttpMethod verb() default HttpMethod.ALL;
 }
