@@ -47,13 +47,37 @@
                     <property name="ext:css">text/css</property>
                     <property name="ext:js">application/x-javascript</property>
                     <property name="ext:jpg">image/jpeg</property>
+                    <property name="ext:jpeg">image/jpeg</property>
                     <property name="ext:png">image/png</property>
+                    <property name="ext:gif">image/gif</property>
+                    <property name="ext:bmp">image/bmp</property>
                     <property name="ext:ico">image/x-icon</property>
                     <property name="ext:cur">image/vnd.microsoft.icon</property>
                     <property name="ext:svg">image/svg+xml</property>
                     <property name="ext:mp4">video/mp4</property>
+                    <property name="ext:m4v">video/x-m4v</property>
+                    <property name="ext:mp3">audio/mpeg</property>
+                    <property name="ext:flv">flv-application/octet-stream</property>
+                    <property name="ext:avi">video/x-msvideo</property>
+                    <property name="ext:qt">video/quicktime</property>
+                    <property name="ext:mov">video/quicktime</property>
                     <property name="ext:woff">application/x-font-woff</property>
-
+                    <property name="ext:swf">application/x-shockwave-flash</property>
+                    
+                    <property name="ext:doc">application/msword</property>
+                    <property name="ext:ppt">appication/powerpoint</property>
+                    <property name="ext:xls">application/vnd.ms-excel</property>
+                    <property name="ext:docx">application/msword</property>
+                    <property name="ext:pptx">appication/powerpoint</property>
+                    <property name="ext:xlsx">application/vnd.ms-excel</property>
+                    
+                    <property name="ext:pdf">application/pdf</property>
+                    <property name="ext:ods">application/vnd.oasis.opendocument.spreadsheet</property>
+                    <property name="ext:odg">application/vnd.oasis.opendocument.graphics</property>
+                    <property name="ext:odb">application/vnd.oasis.opendocument.database</property>
+                    <property name="ext:odt">application/vnd.oasis.opendocument.text</property>
+                    
+                    <property name="ext:exe">application/octet-stream</property>
                     <property name="ext:rar">application/octet-stream</property>
                 </add>
                 
