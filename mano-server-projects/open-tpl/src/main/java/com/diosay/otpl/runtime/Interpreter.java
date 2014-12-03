@@ -182,6 +182,10 @@ public class Interpreter implements Closeable {
 
             if ("str".equals(funcName)) {
                 return calls().str(args);
+            }else if ("int".equals(funcName)) {
+                return Utility.toInt(args[0]);
+            }else if ("long".equals(funcName)) {
+                return Utility.toLong(args[0]);
             } else if ("iterator".equals(funcName)) {
                 return calls().iterator(args[0]);
             } else if ("iterator$hasNext".equals(funcName)) {

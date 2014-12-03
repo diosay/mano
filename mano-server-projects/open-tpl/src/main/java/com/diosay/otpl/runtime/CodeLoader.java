@@ -138,6 +138,11 @@ public class CodeLoader {
             code.setAddress(addr);
             code.setLoader(this);
             return code;
+        }else if (type.equals(OpcodeType.inc)) {
+            Include code = new Include();
+            code.setAddress(addr);
+            code.setLoader(this);
+            return code;
         } else if (type.equals(OpcodeType.body)) {
             Body code = new Body();
             code.setAddress(addr);

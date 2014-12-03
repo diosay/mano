@@ -83,6 +83,7 @@ public abstract class Compiler {
                 ms--;
                 if (ms == 0) {
                     result = i;
+                    return i;
                 }
             }
         }
@@ -106,10 +107,14 @@ public abstract class Compiler {
                     token = new Token();
                     token.line = list.get(i).line;
                     token.type = Token.BLK;
-                    token.code = "(";
+                    if (i > 0 && list.get(i - 1).type == Token.ID) {
+                        token.code = "call-fn";
+                    } else {
+                        token.code = "(";
+                    }
                     int index = lastOf(list, i + 1, Token.OP, Token.CP);
                     if (index < 0) {
-                        throw new mano.InvalidOperationException();
+                        throw new mano.InvalidOperationException("括号不匹配");
                     }
                     for (int j = i + 1; j < index; j++) {
                         token.add(list.get(j));
@@ -128,10 +133,14 @@ public abstract class Compiler {
                     token = new Token();
                     token.line = list.get(i).line;
                     token.type = Token.BLK;
-                    token.code = "[";
+                    if (i > 0 && list.get(i - 1).type == Token.ID) {
+                        token.code = "call-idx";
+                    } else {
+                        token.code = "[";
+                    }
                     int index = lastOf(list, i + 1, Token.OB, Token.CB);
                     if (index < 0) {
-                        throw new mano.InvalidOperationException();
+                        throw new mano.InvalidOperationException("括号不匹配");
                     }
                     for (int j = i + 1; j < index; j++) {
                         token.add(list.get(j));
@@ -143,6 +152,46 @@ public abstract class Compiler {
                         list.remove(i);
                     }
                     list.remove(i);//]
+                    grammar(token);
+                    done = true;
+                    break;
+                }
+            }
+        } while (done);
+
+        //第3级：合并函数与索引。
+        do {
+            done = false;
+            for (int i = 0; i < list.size(); i++) {
+                if (list.get(i).type == Token.BLK && list.get(i).code.equals("call-fn")) {
+                    token = new Token();
+                    token.line = list.get(i).line;
+                    token.type = Token.BLK;
+                    token.code = "call";
+                    token.add(list.get(i - 1));
+                    token.add(list.get(i));
+                    token.get(1).code = "params"; //解决函数无限递归
+                    list.add(i - 1, token);
+
+                    for (int j = 0; j < token.size(); j++) {
+                        list.remove(i);
+                    }
+                    grammar(token);
+                    done = true;
+                    break;
+                } else if (list.get(i).type == Token.BLK && list.get(i).code.equals("call-idx")) {
+                    token = new Token();
+                    token.line = list.get(i).line;
+                    token.type = Token.BLK;
+                    token.code = "indexer";
+                    token.add(list.get(i - 1));
+                    token.add(list.get(i));
+                    token.get(1).code = "params"; //解决函数无限递归
+                    list.add(i - 1, token);
+
+                    for (int j = 0; j < token.size(); j++) {
+                        list.remove(i);
+                    }
                     grammar(token);
                     done = true;
                     break;
@@ -173,58 +222,6 @@ public abstract class Compiler {
                         token.clear();
                     } else if (token.get(0).type == Token.LONG || token.get(1).type == Token.LONG) {
                         throw new mano.InvalidOperationException("无效的属性名称。");
-                    }
-                    grammar(token);
-                    done = true;
-                    break;
-                }
-            }
-        } while (done);
-
-        //第3级：合并函数与索引。
-        do {
-            done = false;
-            for (int i = 0; i < list.size(); i++) {
-                if (list.get(i).type == Token.BLK && list.get(i).code.equals("(")) {
-                    if (i - 1 >= 0 && (list.get(i - 1).type == Token.ID || list.get(i - 1).code.equals("."))) {
-
-                    } else {
-                        continue;
-                    }
-
-                    token = new Token();
-                    token.line = list.get(i).line;
-                    token.type = Token.BLK;
-                    token.code = "call";
-                    token.add(list.get(i - 1));
-                    token.add(list.get(i));
-                    token.get(1).code = "params"; //解决函数无限递归
-                    list.add(i - 1, token);
-
-                    for (int j = 0; j < token.size(); j++) {
-                        list.remove(i);
-                    }
-                    grammar(token);
-                    done = true;
-                    break;
-                } else if (list.get(i).type == Token.BLK && list.get(i).code.equals("[")) {
-                    if (i - 1 >= 0 && (list.get(i - 1).type == Token.ID || list.get(i - 1).code.equals("."))) {
-
-                    } else {
-                        continue;
-                    }
-
-                    token = new Token();
-                    token.line = list.get(i).line;
-                    token.type = Token.BLK;
-                    token.code = "indexer";
-                    token.add(list.get(i - 1));
-                    token.add(list.get(i));
-                    token.get(1).code = "params"; //解决函数无限递归
-                    list.add(i - 1, token);
-
-                    for (int j = 0; j < token.size(); j++) {
-                        list.remove(i);
                     }
                     grammar(token);
                     done = true;
@@ -619,11 +616,11 @@ public abstract class Compiler {
         char c;
         int index;
         String s = null;
-        for (; start < end && start < source.length(); start++) {
+        for (; start < end && start < source.length() && start < end; start++) {
             c = source.charAt(start);
-            if (StringUtil.isWhitespace(c)) {
+            if (StringUtil.isWhitespace(c)) {//空白
                 continue;
-            } else if (StringUtil.isAlphanumeric(c) || '_' == c) {
+            } else if (StringUtil.isAlphanumeric(c) || '_' == c) {//字符串或数字标识
                 if (StringUtil.isDigital(c) && (index = StringUtil.parseNumber(source, start, end)) > -1) {
                     token = new Token();
                     token.type = Token.LONG;
@@ -703,12 +700,27 @@ public abstract class Compiler {
                 list.add(token);
             } else if ('|' == c) {
                 token = new Token();
-                token.type = Token.VL;
+                if (source.charAt(start + 1) == '|') { //||
+                    token.type = Token.OR;
+                    start++;
+                } else {
+                    token.type = Token.VL;
+                }
+                token.line = line;
+                list.add(token);
+            } else if ('&' == c) {
+                token = new Token();
+                if (start + 1 < end && source.charAt(start + 1) == '&') { //&&
+                    token.type = Token.AND;
+                    start++;
+                } else {
+                    throw new UnsupportedOperationException("非法操作符 & 。");
+                }
                 token.line = line;
                 list.add(token);
             } else if ('=' == c) {
                 token = new Token();
-                if (source.charAt(start + 1) == '=') { //++
+                if (source.charAt(start + 1) == '=') { //==
                     token.type = Token.EQ;
                     start++;
                 } else {
@@ -728,7 +740,7 @@ public abstract class Compiler {
                 list.add(token);
             } else if ('!' == c) {
                 token = new Token();
-                if (source.charAt(start + 1) == '=') { //++
+                if (source.charAt(start + 1) == '=') { //!=
                     token.type = Token.NEQ;
                     start++;
                 } else {
@@ -787,7 +799,7 @@ public abstract class Compiler {
                 list.add(token);
                 start = index;
             } else {
-                throw new UnsupportedOperationException("非法字符");
+                throw new UnsupportedOperationException("非法字符：" + c);
             }
         }
         return list;
@@ -800,13 +812,19 @@ public abstract class Compiler {
      * @return
      */
     static int getCount(Token token) {
-        if (token.type != Token.BLK || !token.code.equals("comma")) {
+        if (token.type != Token.BLK) {
+            return 1;
+        } else if (token.code.equals("params")) {
+            //return 1;
+        }
+        else if (!token.code.equals("comma")) {
             return 1;
         }
+        //
         int count = 0;
         for (Token sub : token) {
-            if (token.type == Token.BLK && token.code.equals("comma")) {
-                count += getCount(token.get(1));
+            if (sub.type == Token.BLK && sub.code.equals("comma")) {
+                count += getCount(sub);
             } else {
                 count++;
             }
@@ -830,8 +848,7 @@ public abstract class Compiler {
                     LoadConst code = new LoadConst();
                     code.setValue(LoadConst.FALSE);
                     list.add(code);
-                }
-                if ("true".equalsIgnoreCase(token.code)) {
+                } else if ("true".equalsIgnoreCase(token.code)) {
                     LoadConst code = new LoadConst();
                     code.setValue(LoadConst.TRUE);
                     list.add(code);
@@ -863,8 +880,9 @@ public abstract class Compiler {
             case Token.BLK:
                 final String b = token.code;
                 switch (b) {
-                    case "dot":
+                    case "dot"://成员
                         visit(token.get(0), list);
+
                         System.out.println("->");//neg
 
                         if (token.get(1).type == Token.BLK && "call".equals(token.get(1).code)) {
@@ -893,18 +911,18 @@ public abstract class Compiler {
                             visit(token.get(1), list);
                         }
                         break;
-                    case "neg":
+                    case "neg"://负数
                         visit(token.get(0), list);
                         list.add(new Operator().setOperator(Operator.NEG));
                         break;
-                    case "call":
+                    case "call"://调用
                         if (token.get(0).type != Token.ID) {
                             throw new UnsupportedOperationException("语法错误");
                         }
                         visit(token.get(1), list);//参数
                         list.add(new Callvri().setName(token.get(0).code).setArgLength(getCount(token.get(1).get(0))));
                         break;
-                    case "indexer":
+                    case "indexer"://索引
                         if (token.get(0).type != Token.ID) {
                             throw new UnsupportedOperationException("语法错误");
                         }
@@ -957,22 +975,37 @@ public abstract class Compiler {
                         break;
                     }
                     case "and": {//&&
+                        //Nop case1 = new Nop();
+                        Nop case2 = new Nop();
                         visit(token.get(0), list);
+                        list.add(new Peek());
+                        list.add(new LoadConst().setValue(LoadConst.TRUE));
+                        list.add(new Operator().setOperator(Operator.EQ));//? !=null
+                        list.add(OpCode.makeBreakFalse(case2));//if false then left
                         visit(token.get(1), list);
-                        Operator code = new Operator();
-                        code.setOperator(Operator.AND);
-                        list.add(code);
+                        //Operator code = new Operator();
+                        //code.setOperator(Operator.AND);
+                        list.add(new Operator().setOperator(Operator.AND));
+                        list.add(case2);
                         break;
                     }
                     case "or": {//||
+                        //Nop case1 = new Nop();
+                        Nop case2 = new Nop();
                         visit(token.get(0), list);
+                        list.add(new Peek());
+                        list.add(new LoadConst().setValue(LoadConst.TRUE));
+                        list.add(new Operator().setOperator(Operator.EQ));//? !=null
+                        list.add(OpCode.makeBreakTrue(case2));//if false then left
                         visit(token.get(1), list);
-                        Operator code = new Operator();
-                        code.setOperator(Operator.OR);
-                        list.add(code);
+                        //Operator code = new Operator();
+                        //code.setOperator(Operator.OR);
+                        //list.add(code);
+                        list.add(new Operator().setOperator(Operator.OR));
+                        list.add(case2);
                         break;
                     }
-                    case "eq": {//=
+                    case "eq": {//==
                         visit(token.get(0), list);
                         visit(token.get(1), list);
                         Operator code = new Operator();

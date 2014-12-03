@@ -188,7 +188,8 @@ public enum OpcodeType {
      * 行号
      */
     sl(39),
-    callvri(40);
+    callvri(40),
+    inc(41);
     
     
     

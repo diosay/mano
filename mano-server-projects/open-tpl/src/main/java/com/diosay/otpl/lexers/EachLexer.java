@@ -65,7 +65,7 @@ public class EachLexer extends com.diosay.otpl.Compiler implements Lexer {
         int index = 0;
         index = StringUtil.trimLeftWhitespace(source, index, source.length());
 
-        if (source.charAt(index) != ':') {
+        if (index<source.length() && source.charAt(index) != ':') {
             throw new UnsupportedOperationException("语法错误：未知字符");
         }
         index++;

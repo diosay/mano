@@ -181,9 +181,9 @@ public class ForLexer extends com.diosay.otpl.Compiler implements Lexer {
         list.add(new LoadVariable().setName(step.getName()));//ldv step
         list.add(new LoadLong().setValue(0));//ldr 0
         
-        list.add(new Operator().setOperator(Operator.LT));//lt
+        list.add(new Operator().setOperator(Operator.LE));//lt
         list.add(OpCode.makeBreakTrue(lbDown));//brf DOWN
-        list.add(new Operator().setOperator(Operator.LT));//lt
+        list.add(new Operator().setOperator(Operator.LE));//lt
         list.add(OpCode.makeBreakFalse(lbElse));//brf ELSE
         list.add(OpCode.makeBreak(begin));//br BEGIN
         list.add(lbDown);
@@ -205,9 +205,9 @@ public class ForLexer extends com.diosay.otpl.Compiler implements Lexer {
         list.add(new LoadVariable().setName(step.getName()));//ldv step
         list.add(new LoadLong().setValue(0));//ldr 0
 
-        list.add(new Operator().setOperator(Operator.LT));//lt
+        list.add(new Operator().setOperator(Operator.LE));//lt
         list.add(OpCode.makeBreakTrue(lbDown));//brf DOWN
-        list.add(new Operator().setOperator(Operator.LT));//lt
+        list.add(new Operator().setOperator(Operator.LE));//lt
         list.add(OpCode.makeBreakFalse(end));//brf END
         list.add(OpCode.makeBreak(begin));//br BEGIN
         list.add(lbDown2);

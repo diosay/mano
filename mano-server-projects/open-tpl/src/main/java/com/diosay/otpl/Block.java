@@ -95,11 +95,19 @@ public class Block extends Node {
             throw new InvalidOperationException("block has been closed.");
         } else if (canClose(node)) {
             closed = true;
-            this.dom.current=this.getParent();//fix self-call
+            this.dom.current = this.getParent();//fix self-call
             if (node.isEndBlock()) {
                 return this.getParent();
             } else {
-                return this.getParent().append(node);
+
+                node.associate(getParent(), getParent().children.isEmpty() ? null : getParent().children.getLast());
+                getParent().children.add(node);
+                if (node.isBlock()) {
+                    //this.getParent().append(node);
+                    return (Block) node;
+                } else {
+                    return getParent();
+                }
             }
         }
 

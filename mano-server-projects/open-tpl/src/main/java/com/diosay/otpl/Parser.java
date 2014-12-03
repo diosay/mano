@@ -15,6 +15,7 @@ import com.diosay.otpl.lexers.ElifLexer;
 import com.diosay.otpl.lexers.ElseLexer;
 import com.diosay.otpl.lexers.ForLexer;
 import com.diosay.otpl.lexers.IfLexer;
+import com.diosay.otpl.lexers.IncludeLexer;
 import com.diosay.otpl.lexers.LayoutLexer;
 import com.diosay.otpl.lexers.PlaceLexer;
 import com.diosay.otpl.lexers.PrintLexer;
@@ -173,6 +174,7 @@ public class Parser extends Compiler {
         this.regsisterLexer(new VariableLexer());
         this.regsisterLexer(new BreakLexer());
         this.regsisterLexer(new ContinueLexer());
+        this.regsisterLexer(new IncludeLexer());
         int index;
         int end;
         int[] arr;
@@ -260,6 +262,9 @@ public class Parser extends Compiler {
      * 当发现文本时。
      */
     protected void onText(CharSequence source, int start, int end) {
+        if(inComment){
+            return;
+        }
         Text text = new Text(this.document, this.line);
         text.setCompiler((Compiler) lexers.get("text"));
         text.setSource(source, start, end);

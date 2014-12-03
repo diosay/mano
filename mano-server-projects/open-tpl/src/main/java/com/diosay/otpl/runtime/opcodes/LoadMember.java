@@ -91,7 +91,17 @@ public class LoadMember extends OpCode {
             } catch (Exception ex) {
             }
         }
-
+        if (member == null) {
+            try {
+                for (Method m : clazz.getMethods()) {
+                    if (m.getName().equalsIgnoreCase(name) && m.getParameterCount() == len) {
+                        member = m;
+                        break;
+                    }
+                }
+            } catch (Exception ex) {
+            }
+        }
         if (member == null && len == 0) {
             try {
                 for (Field m : clazz.getFields()) {

@@ -7,20 +7,27 @@
  */
 package com.diosay.otpl;
 
+import com.diosay.otpl.runtime.OpCode;
+import java.util.ArrayList;
+
 /**
  * 表示一个块的结束。
  *
  * @author jun <jun@diosay.com>
  */
 public class EndBlock extends Node {
+
     private String name;
     private Document dom;
+    private int line;
+
     protected EndBlock() {
     }
 
     EndBlock(Document dom, String name, int line) {
-        this.dom=dom;
-        this.name=name;
+        this.dom = dom;
+        this.name = name;
+        this.line = line;
     }
 
     @Override
@@ -55,21 +62,31 @@ public class EndBlock extends Node {
 
     @Override
     public Document getOwnerDocument() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return dom;
     }
 
     @Override
     public Compiler getCompiler() {
-        throw new UnsupportedOperationException("Not supported.");
+        return dc;
+    }
+    static cc dc = new cc();
+
+    static class cc extends com.diosay.otpl.Compiler {
+
+        @Override
+        public void compile(Node node, ArrayList<OpCode> list) {
+            System.out.println("WARNING: 结束标签不应该被编译。name:" + node != null ? node.getName() : "");
+        }
+
     }
 
     @Override
     public int getLineNumber() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return line;
     }
 
     @Override
     public CharSequence getSource() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return "";
     }
 }

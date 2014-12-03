@@ -55,7 +55,7 @@ public class Token extends ArrayList<Token>{
         public static final int OB = 28; // [
         public static final int CB = 29; // ]
         
-        public static final int VL = 30; // |
+        public static final int VL = 31; // |
         
         
         public int type;
