@@ -83,8 +83,8 @@ public class HttpChannel extends AioSocketChannel implements HttpContext {
         if (info == null) {
             return false;
         }
-        info.serviceLoader=((HttpService)this.getListener().getGroup()).loader;
-        info.service=(com.diosay.mano.service.Service)this.getListener().getGroup();
+        //info.serviceLoader=((HttpService)this.getListener().getGroup()).loader;
+        info.service=(Service)this.getListener().getGroup();
         WebApplication app = info.getInstance();
         if (app == null) {
             return false;
@@ -95,7 +95,7 @@ public class HttpChannel extends AioSocketChannel implements HttpContext {
         response.channel = this;
 
         //build session
-        Service svc = ServiceManager.getInstance().getService("cache.service");
+        Service svc = ServiceManager.get("cache.service");
         if (svc != null && svc instanceof ServiceProvider) {
             CacheProvider provider = ((ServiceProvider) svc).getService(CacheProvider.class);//TODO: 指定实例服务
             if (provider != null) {

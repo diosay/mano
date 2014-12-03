@@ -10,6 +10,8 @@ import com.diosay.mano.io.ByteArrayMessage;
 import com.diosay.mano.io.ChannelBuffer;
 import com.diosay.mano.io.ChannelCloseingMessage;
 import com.diosay.mano.io.ChannelHanlder;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.InterruptedByTimeoutException;
 import mano.DateTime;
@@ -113,21 +115,83 @@ public class HttpProtocol11 implements ChannelHanlder<HttpChannel> {
             channel.close();
             return;
         }
-
-        if (exc instanceof HttpException) {
-            this.responseError((HttpException) exc, channel);
-        } else {
-            System.err.println("error=======================");
-            exc.printStackTrace(System.err);
-            this.responseError(new HttpException(HttpStatus.InternalServerError, exc), channel);
-        }
+        System.err.println("ERR:");
+        exc.printStackTrace(System.err);
+        this.responseError(exc, channel);
     }
 
-    public void responseError(HttpException ex, HttpChannel channel) {
+    private void printRoot(StringBuilder sb, Throwable t) {
+        if (t == null) {
+            return;
+        }
+        sb.append("<b>root</b><p><pre>");
+        StringWriter sw = new StringWriter();
+        try (PrintWriter pw = new PrintWriter(sw)) {
+            pw.println();
+            t.printStackTrace(pw);
+        }
+        sb.append(sw.toString());
+        sb.append("</pre></p>");
+        printRoot(sb, t.getCause());
+    }
 
-        byte[] response = String.format("<html><head><title>HTTP %s Error</title></head><body>%s</body></html>", ex.getHttpCode(), ex.getMessage()).getBytes();
-        StringBuilder sb = new StringBuilder("HTTP/1.1 ");
-        sb.append(ex.getHttpCode()).append(" ").append(HttpStatus.getKnowDescription(ex.getHttpCode())).append("\r\n");
+    public void responseError(Throwable t, HttpChannel channel) {
+        HttpStatus status;
+        StringBuilder sb = new StringBuilder();
+        if (t instanceof HttpException) {
+            HttpException ex = (HttpException) t;
+            status = ex.getHttpStatus();
+            sb.append("<html><head><title>")
+                    .append(ex.getHttpStatus().getStatus())
+                    .append(" Error")
+                    .append("</title></head><body>");
+            if (ex.getMessage() != null) {
+                sb.append("<b>message</b><u>")
+                        .append(ex.getMessage())
+                        .append("</u>");
+            }
+            if (ex.getCause() != null) {
+                sb.append("<b>exception</b><p><pre>");
+                StringWriter sw = new StringWriter();
+                try (PrintWriter pw = new PrintWriter(sw)) {
+                    pw.println();
+                    ex.getCause().printStackTrace(pw);
+                }
+                sb.append(sw.toString());
+                sb.append("</pre></p>");
+                printRoot(sb, ex.getCause().getCause());
+            }
+            sb.append("<hr>")
+                    .append("Mano Server");//context.getServer().getVersion()
+        } else {
+            status = HttpStatus.InternalServerError;
+            sb.append("<html><head><title>")
+                    .append(HttpStatus.InternalServerError.getStatus())
+                    .append(" Error")
+                    .append("</title></head><body>");
+            if (t.getMessage() != null) {
+                sb.append("<b>message</b><u>")
+                        .append(t.getMessage())
+                        .append("</u>");
+            }
+            if (t.getCause() != null) {
+                sb.append("<b>exception</b><p><pre>");
+                StringWriter sw = new StringWriter();
+                try (PrintWriter pw = new PrintWriter(sw)) {
+                    pw.println();
+                    t.getCause().printStackTrace(pw);
+                }
+                sb.append(sw.toString());
+                sb.append("</pre></p>");
+                printRoot(sb, t.getCause().getCause());
+            }
+            sb.append("<hr>")
+                    .append("Mano Server");//context.getServer().getVersion()
+        }
+        sb.append("</body></html>");
+        byte[] response = sb.toString().getBytes(channel.getInputEncoding());
+        sb = new StringBuilder("HTTP/1.1 ");
+        sb.append(status.getStatus()).append(" ").append(status.getDescription()).append("\r\n");
         sb.append("Content-Length:").append(response.length).append("\r\n");
         sb.append("Connection:close").append("\r\n");
         sb.append("Date:").append(DateTime.now().toGMTString()).append("\r\n");
@@ -151,7 +215,40 @@ public class HttpProtocol11 implements ChannelHanlder<HttpChannel> {
         ChannelCloseingMessage msg2 = new ChannelCloseingMessage();
         msg2.handler = this;
         channel.enqueue(msg2);
-
     }
 
+//    public void responseError(HttpException ex, HttpChannel channel) {
+//        StringWriter sw = new StringWriter();
+//        try (PrintWriter pw = new PrintWriter(sw)) {
+//            pw.println();
+//            ex.printStackTrace(pw);
+//        }
+//        byte[] response = String.format("<html><head><title>HTTP %s Error</title></head><body>%s</body></html>", ex.getHttpCode(), sw.toString()).getBytes();
+//        StringBuilder sb = new StringBuilder("HTTP/1.1 ");
+//        sb.append(ex.getHttpCode()).append(" ").append(HttpStatus.getKnowDescription(ex.getHttpCode())).append("\r\n");
+//        sb.append("Content-Length:").append(response.length).append("\r\n");
+//        sb.append("Connection:close").append("\r\n");
+//        sb.append("Date:").append(DateTime.now().toGMTString()).append("\r\n");
+//        sb.append("\r\n");
+//
+//        byte[] bytes = sb.toString().getBytes(channel.getInputEncoding());
+//        ByteArrayMessage msg = new ByteArrayMessage();
+//        msg.handler = this;
+//        msg.array = bytes;
+//        msg.offset = 0;
+//        msg.length = bytes.length;
+//        channel.enqueue(msg);
+//
+//        msg = new ByteArrayMessage();
+//        msg.handler = this;
+//        msg.array = response;
+//        msg.offset = 0;
+//        msg.length = response.length;
+//        channel.enqueue(msg);
+//
+//        ChannelCloseingMessage msg2 = new ChannelCloseingMessage();
+//        msg2.handler = this;
+//        channel.enqueue(msg2);
+//
+//    }
 }

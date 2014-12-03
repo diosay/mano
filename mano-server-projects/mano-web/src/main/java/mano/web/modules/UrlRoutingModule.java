@@ -22,25 +22,28 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import mano.caching.LruCacheProvider;
 import mano.http.HttpContext;
+import mano.http.HttpMethod;
 import mano.http.HttpModule;
 import mano.util.Utility;
 import mano.web.ActionFilter;
+import mano.web.ActionHandler;
 import mano.web.ActionResult;
-import mano.web.Controller;
+import mano.web.CookieParam;
 import mano.web.Filter;
 import mano.web.FilterGroup;
+import mano.web.Module;
+import mano.web.Named;
 import mano.web.PathParam;
+import mano.web.RequestParam;
+import mano.web.SessionParam;
 import mano.web.UrlMapping;
 import mano.web.ViewContext;
 import mano.web.ViewEngine;
@@ -54,33 +57,7 @@ import mano.web.WebApplication;
  */
 public class UrlRoutingModule implements HttpModule {
 
-    class JarScanner {
-
-        @Deprecated
-        private String[] jarFiles;
-
-        @Deprecated
-        public void scan(String path) {
-            java.io.File dir = new java.io.File(path);
-            dir.list(new FilenameFilter() {
-
-                @Override
-                public boolean accept(File tmp, String name) {
-                    if (!name.toLowerCase().endsWith(".jar")) {
-                        return false;
-                    }
-
-                    try {
-                        scanJar(new URL("jar:file:/" + tmp.toString() + "/" + name + "!/"), name.substring(0, name.length() - 4));
-                    } catch (MalformedURLException ex) {
-                        if (java.lang.MANO_WEB_MACRO.DEBUG) {
-                            app.getLogger().debug(null, ex);
-                        }
-                    }
-                    return false;
-                }
-            });
-        }
+    private class JarScanner {
 
         public void scan(URL url) {
             String protocol = url.getProtocol().toLowerCase();
@@ -115,7 +92,7 @@ public class UrlRoutingModule implements HttpModule {
                 if (!entry.isDirectory() && name.endsWith(".class") && name.indexOf("$") < 1) {//
                     name = (name.substring(0, name.length() - 6)).replace('/', '.');
                     try {
-                        onFoundClass(app.getLoader().loadClass(name));
+                        resolveRoute(app.getLoader().loadClass(name));
                     } catch (Throwable ex) {
                         if (java.lang.MANO_WEB_MACRO.DEBUG) {
                             app.getLogger().debug(null, ex);
@@ -147,7 +124,7 @@ public class UrlRoutingModule implements HttpModule {
                 //如果是java类文件 去掉后面的.class 只留下类名  
                 String className = dir.getName().substring(0, dir.getName().length() - 6);
                 try {
-                    onFoundClass(app.getLoader().loadClass(className));
+                    resolveRoute(app.getLoader().loadClass(className));
                 } catch (Throwable ex) {
                     if (java.lang.MANO_WEB_MACRO.DEBUG) {
                         app.getLogger().debug(null, ex);
@@ -160,183 +137,186 @@ public class UrlRoutingModule implements HttpModule {
                 });
             }
         }
+//
+//        final Class<?> foundClass(String type) {
+//            try {
+//                return app.getLoader().loadClass(type);
+//            } catch (Throwable ex) {
+//                if (java.lang.MANO_WEB_MACRO.DEBUG) {
+//                    app.getLogger().debug(null, ex);
+//                }
+//            }
+//            return null;
+//        }
 
-        final Class<?> foundClass(String type) {
-            try {
-                return app.getLoader().loadClass(type);
-            } catch (Throwable ex) {
-                if (java.lang.MANO_WEB_MACRO.DEBUG) {
-                    app.getLogger().debug(null, ex);
-                }
-            }
-            return null;
-        }
-
-        final Pattern pattern = Pattern.compile("\\{\\s*(\\w+)\\s*\\}");
-
-        public void onFoundClass(Class<?> clazz) {
-            if (clazz == null) {
-                return;
-            }
-            //.*/controller/action/(\w*)/(\w*).*
-            //\{(\w+)(\?){0,1}\}
-            //{?name}
-            //default +1000
-            UrlMapping mapping;
-            String url = null;
-            int verb = 0;
-            boolean pojo = false;
-            Annotation[][] ps;
-            String pname;
-            Map<Integer, String> map = new HashMap<>();
-            String part;
-            ArrayList<String> list = new ArrayList<>();
-            final StringBuilder sb = new StringBuilder();
-            Matcher matcher = pattern.matcher(sb);
-            Route route;
-
-            //查找类，获取第1部分URL
-            if (Controller.class.isAssignableFrom(clazz)) {
-                mapping = clazz.getAnnotation(UrlMapping.class);
-                if (mapping != null) {
-                    url = mapping.value();
-                }
-                if (url == null || "".equals(url.trim())) {
-                    url = clazz.getSimpleName().toLowerCase();
-                    if (url.endsWith("controller")) {
-                        url = url.substring(0, url.length() - 10);
-                    }
-                }
-            } else {
-                mapping = clazz.getAnnotation(UrlMapping.class);
-                if (mapping == null) {
-                    return;
-                }
-                try {
-                    clazz.getMethod("setService", ViewContext.class);
-                } catch (Throwable ex) {
-                    return;
-                }
-                url = mapping.value();
-                verb = mapping.verb();
-                pojo = true;
-                if (url == null || "".equals(url.trim())) {
-                    url = clazz.getSimpleName().toLowerCase();
-                    if (url.endsWith("controller")) {
-                        url = url.substring(0, url.length() - 10);
-                    }
-                }
-            }
-            if (!url.startsWith("/")) {
-                url = "/" + url;
-            }
-            if (!url.endsWith("/")) {
-                url += "/";
-            }
-
-            //查找方法，获取第2部分URL 和签名参数
-            for (Method method : clazz.getDeclaredMethods()) {
-                map.clear();
-                mapping = method.getAnnotation(UrlMapping.class);
-                if (mapping == null) {
-                    continue;
-                }
-
-                if (mapping.verb() > 0) {
-                    verb = mapping.verb(); //重写父级定义
-                }
-
-                part = mapping.value();
-
-                if (part == null || "".equals(part.trim())) {
-                    part = method.getName();
-                }
-                if (part.startsWith("/")) {
-                    part = part.substring(1);
-                }
-
-                list.clear();
-                sb.setLength(0);
-                sb.append(url);
-                sb.append(part);
-                matcher = pattern.matcher(sb);
-                while (matcher.find()) {
-                    String name = matcher.group(1);
-                    list.add(name);
-                    sb.replace(matcher.start(), matcher.end(), "(?<" + name + ">\\w+)");
-                }
-                //解决最后一个元素不能被替换的BUG
-                matcher = pattern.matcher(sb);
-                while (matcher.find()) {
-                    String name = matcher.group(1);
-                    list.add(name);//{1}{2}
-                    sb.replace(matcher.start(), matcher.end(), "(?<" + name + ">\\w+)");
-                }
-
-                //http://blog.sina.com.cn/s/blog_72827fb10101pl9i.html
-                //http://blog.sina.com.cn/s/blog_72827fb10101pl9j.html
-                if (sb.charAt(sb.length() - 1) != '$') {
-                    if (sb.charAt(sb.length() - 1) == '/') {
-                        sb.append("{0,1}$");
-                    } else {
-                        sb.append("/{0,1}$");
-                    }
-                }
-                if (sb.charAt(0) != '^') {
-                    sb.insert(0, "^");
-                }
-
-                //参数映射集合
-                ps = method.getParameterAnnotations();
-                for (int i = 0; i < ps.length; i++) {
-                    for (int j = 0; j < ps[i].length; j++) {
-                        if (ps[i][j] instanceof PathParam) {
-                            pname = ((PathParam) ps[i][j]).value();
-                        } else {
-                            pname = "";
-                        }
-                        if ("".equals(pname) || !list.contains(pname)) {
-                            continue;
-                        }
-                        if (map.containsKey(i)) {
-                            //map.put(i, map.get(i) + "," + pname);
-                        } else {
-                            map.put(i, pname);
-                        }
-                        break;
-                    }
-                }
-
-                route = new Route();
-                method.setAccessible(true);
-                route.call = method;
-                route.clazz = clazz;
-                route.paramsMapping.putAll(map);
-                route.patten = sb.toString();
-                route.controller = clazz.getSimpleName().toLowerCase();
-                route.action = method.getName().toLowerCase();
-                routeTable.add(route);
-            }
-
-            //PathMapping()
-            //Routing(x,0);
-            //clazz.getInterfaces()
-            //System.out.println(clazz);
-        }
-
+        //final Pattern pattern = Pattern.compile("\\{\\s*(\\w+)\\s*\\}");
+//        public void onFoundClass(Class<?> clazz) {
+//            if (clazz == null) {
+//                return;
+//            }
+//            //.*/controller/action/(\w*)/(\w*).*
+//            //\{(\w+)(\?){0,1}\}
+//            //{?name}
+//            //default +1000
+//            UrlMapping mapping;
+//            String url = null;
+//            int verb = 0;
+//            boolean pojo = false;
+//            Annotation[][] ps;
+//            String pname;
+//            Map<Integer, String> map = new HashMap<>();
+//            String part;
+//            ArrayList<String> list = new ArrayList<>();
+//            final StringBuilder sb = new StringBuilder();
+//            Matcher matcher = pattern.matcher(sb);
+//            Route route;
+//
+//            //查找类，获取第1部分URL
+//            if (Controller.class.isAssignableFrom(clazz)) {
+//                mapping = clazz.getAnnotation(UrlMapping.class);
+//                if (mapping != null) {
+//                    url = mapping.value();
+//                }
+//                if (url == null || "".equals(url.trim())) {
+//                    url = clazz.getSimpleName().toLowerCase();
+//                    if (url.endsWith("controller")) {
+//                        url = url.substring(0, url.length() - 10);
+//                    }
+//                }
+//            } else {
+//                mapping = clazz.getAnnotation(UrlMapping.class);
+//                if (mapping == null) {
+//                    return;
+//                }
+//                try {
+//                    clazz.getMethod("setService", ViewContext.class);
+//                } catch (Throwable ex) {
+//                    return;
+//                }
+//                url = mapping.value();
+//                //verb = mapping.verb();
+//                pojo = true;
+//                if (url == null || "".equals(url.trim())) {
+//                    url = clazz.getSimpleName().toLowerCase();
+//                    if (url.endsWith("controller")) {
+//                        url = url.substring(0, url.length() - 10);
+//                    }
+//                }
+//            }
+//            if (!url.startsWith("/")) {
+//                url = "/" + url;
+//            }
+//            if (!url.endsWith("/")) {
+//                url += "/";
+//            }
+//
+//            //查找方法，获取第2部分URL 和签名参数
+//            for (Method method : clazz.getDeclaredMethods()) {
+//                map.clear();
+//                mapping = method.getAnnotation(UrlMapping.class);
+//                if (mapping == null) {
+//                    continue;
+//                }
+//
+////                if (mapping.verb() > 0) {
+////                    verb = mapping.verb(); //重写父级定义
+////                }
+//                part = mapping.value();
+//
+//                if (part == null || "".equals(part.trim())) {
+//                    part = method.getName();
+//                }
+//                if (part.startsWith("/")) {
+//                    part = part.substring(1);
+//                }
+//
+//                list.clear();
+//                sb.setLength(0);
+//                sb.append(url);
+//                sb.append(part);
+//                matcher = pattern.matcher(sb);
+//                while (matcher.find()) {
+//                    String name = matcher.group(1);
+//                    list.add(name);
+//                    sb.replace(matcher.start(), matcher.end(), "(?<" + name + ">\\w+)");
+//                }
+//                //解决最后一个元素不能被替换的BUG
+//                matcher = pattern.matcher(sb);
+//                while (matcher.find()) {
+//                    String name = matcher.group(1);
+//                    list.add(name);//{1}{2}
+//                    sb.replace(matcher.start(), matcher.end(), "(?<" + name + ">\\w+)");
+//                }
+//
+//                //http://blog.sina.com.cn/s/blog_72827fb10101pl9i.html
+//                //http://blog.sina.com.cn/s/blog_72827fb10101pl9j.html
+//                if (sb.charAt(sb.length() - 1) != '$') {
+//                    if (sb.charAt(sb.length() - 1) == '/') {
+//                        sb.append("{0,1}$");
+//                    } else {
+//                        sb.append("/{0,1}$");
+//                    }
+//                }
+//                if (sb.charAt(0) != '^') {
+//                    sb.insert(0, "^");
+//                }
+//
+//                //参数映射集合
+//                ps = method.getParameterAnnotations();
+//                for (int i = 0; i < ps.length; i++) {
+//                    for (int j = 0; j < ps[i].length; j++) {
+//                        if (ps[i][j] instanceof PathParam) {
+//                            pname = ((PathParam) ps[i][j]).value();
+//                        } else {
+//                            pname = "";
+//                        }
+//                        if ("".equals(pname) || !list.contains(pname)) {
+//                            continue;
+//                        }
+//                        if (map.containsKey(i)) {
+//                            //map.put(i, map.get(i) + "," + pname);
+//                        } else {
+//                            map.put(i, pname);
+//                        }
+//                        break;
+//                    }
+//                }
+//
+//                route = new Route();
+//                method.setAccessible(true);
+//                route.call = method;
+//                route.clazz = clazz;
+//                //route.paramsMapping.putAll(map);
+//                route.patten = sb.toString();
+//                route.controller = clazz.getSimpleName().toLowerCase();
+//
+//                if (route.controller.endsWith("controller")) {
+//                    route.controller = route.controller.substring(0, route.controller.length() - 10);
+//                }
+//
+//                route.action = method.getName().toLowerCase();
+//                routeTable.add(route);
+//            }
+//
+//            //PathMapping()
+//            //Routing(x,0);
+//            //clazz.getInterfaces()
+//            //System.out.println(clazz);
+//        }
     }
 
-    class Route {
+    private class Route {
 
-        Class<?> clazz;
-        boolean isPOJO;
+        Class<? extends ActionHandler> clazz;
+        //boolean isPOJO;
         String patten;
         Method call;
+        String module;
         String controller;
         String action;
-        String setServiceMethod;
-        int httpMethod;
-        Map<Integer, String> paramsMapping = new HashMap<>();
+        //String setServiceMethod;
+        HttpMethod httpMethod;
+        Map<Integer, GetValue> paramsMapping;
         ActionFilter[] filters;
 
         public ActionFilter[] getActionFilters() throws Exception {
@@ -361,8 +341,8 @@ public class UrlRoutingModule implements HttpModule {
                 }
                 ArrayList<ActionFilter> tmp2 = new ArrayList<>();
                 ActionFilter filter;
-                for (Class<?> clazz : tmp) {
-                    filter = (ActionFilter) app.getLoader().newInstance(clazz);
+                for (Class<?> c2 : tmp) {
+                    filter = (ActionFilter) app.getLoader().newInstance(c2);
                     tmp2.add(filter);
                 }
 
@@ -374,6 +354,9 @@ public class UrlRoutingModule implements HttpModule {
         Matcher matcher;
 
         public boolean test(HttpContext context, String tryPath) {
+            if (httpMethod != HttpMethod.ALL && !context.getRequest().getMethod().equalWith(httpMethod)) {
+                return false;
+            }
             if (test == null) {
                 try {
                     test = Pattern.compile(patten, Pattern.CASE_INSENSITIVE);
@@ -385,37 +368,60 @@ public class UrlRoutingModule implements HttpModule {
                 }
             }
             matcher = test.matcher(tryPath);
-            if (matcher.matches()) {
-                //httpMethod
-                // && context.getRequest().
-                return true;
-            }
-
-            return false;
+            return matcher.matches();
         }
-        Method m;
+//        Method m;
+//
+//        private Method getMethod(Class<?> type) throws Exception {
+//            try {
+//                return type.getDeclaredMethod("setService", ViewContext.class);
+//            } catch (NoSuchMethodException ex) {
+//                if (type.getSuperclass() != null) {
+//                    return getMethod(type.getSuperclass());
+//                } else {
+//                    throw ex;
+//                }
+//            } catch (SecurityException ex) {
+//                throw ex;
+//            }
+//        }
 
-        private Method getMethod(Class<?> type) throws Exception {
-            try {
-                return type.getDeclaredMethod("setService", ViewContext.class);
-            } catch (NoSuchMethodException ex) {
-                if (type.getSuperclass() != null) {
-                    return getMethod(type.getSuperclass());
-                } else {
-                    throw ex;
-                }
-            } catch (SecurityException ex) {
-                throw ex;
-            }
+//        public void setContext(ActionHandler instance, ViewContext context) throws Exception {
+//            ((ActionHandler) instance).init(context);
+////            if (m == null) {
+////                m = getMethod(clazz);
+////                m.setAccessible(true);
+////            }
+////            m.invoke(instance, context);
+//        }
+        public Object getPathValue(HttpContext ctx, String name, Class<?> type) {
+            return Utility.cast(type, matcher.group(name));
         }
 
-        public void setContext(Object instance, ViewContext context) throws Exception {
-            if (m == null) {
-                m = getMethod(clazz);
-                m.setAccessible(true);
-            }
-            m.invoke(instance, context);
+        public Object getSessionValue(HttpContext ctx, String name, Class<?> type) {
+            return Utility.cast(type, ctx.getSession().get(name));
         }
+
+        public Object getCookieValue(HttpContext ctx, String name, Class<?> type) {
+            return Utility.cast(type, ctx.getRequest().getCookie().get(name));
+        }
+
+        //TODO:
+        public Object getQueryValue(HttpContext ctx, String name, Class<?> type) {
+            if (ctx.getRequest().query().containsKey(name)) {
+                return Utility.cast(type, ctx.getRequest().query().get(name));
+            }
+            return Utility.cast(type, ctx.getRequest().form().get(name));
+        }
+
+        public Object getFormValue(HttpContext ctx, String name, Class<?> type) {
+            return Utility.cast(type, ctx.getRequest().form().get(name));
+        }
+    }
+
+    private interface GetValue {
+
+        Object value(Route r, HttpContext ctx);
     }
 
     private ViewEngine viewEngine;
@@ -423,67 +429,222 @@ public class UrlRoutingModule implements HttpModule {
     private WebApplication app;
     private HashMap<Class<?>, ActionFilter> actionFilters = new HashMap<>();
     private LruCacheProvider cache = new LruCacheProvider();
+    private final Pattern pattern = Pattern.compile("\\{\\s*(\\w+)\\s*\\}");
+    private ArrayList<Class<?>> htypes = new ArrayList<>();
 
-    public void init(WebApplication application) {
-        //application.on("beginRequest",this.action);
-        //application.on("beginRequest",this.action);
-        //http://www.cnblogs.com/Ghost-Draw-Sign/articles/1428174.html
-    }
-
+    //http://www.cnblogs.com/Ghost-Draw-Sign/articles/1428174.html
     @Override
     public void init(WebApplication app, Properties params) {
         this.app = app;
-        JarScanner js = new JarScanner();
+        JarScanner scanner = new JarScanner();
         if (java.lang.MANO_WEB_MACRO.DEBUG) {
-            app.getLogger().info("scanning controllers...");
-        }
-        for (URL url : app.getLoader().getURLs()) {
-            try {
-                app.getLogger().debug("URI:" + url.toString());
-            } catch (Throwable ex) {
-                if (java.lang.MANO_WEB_MACRO.DEBUG) {
-                    app.getLogger().debug("scanning jar:" + url, ex);
-                }
-            }
-        }
-        for (URL url : app.getLoader().getURLs()) {
-            try {
-                js.scan(url);
-            } catch (Throwable ex) {
-                if (java.lang.MANO_WEB_MACRO.DEBUG) {
-                    app.getLogger().debug("scanning jar:" + url, ex);
-                }
-            }
+            app.getLogger().info("scanning action handlers...");
         }
 
+        app.getActionHandlers().forEach(tp -> {
+            try {
+                resolveRoute(tp);
+            } catch (Throwable ex) {
+                if (java.lang.MANO_WEB_MACRO.DEBUG) {
+                    app.getLogger().info(ex);
+                }
+            }
+        });
+
+        URL[] urls = app.getActionHandlerJarUrls();
+        if (urls != null) {
+            for (URL url : urls) {
+                try {
+                    scanner.scan(url);
+                } catch (Throwable ex) {
+                    if (java.lang.MANO_WEB_MACRO.DEBUG) {
+                        app.getLogger().info("scanning jar:" + url, ex);
+                    }
+                }
+            }
+        }
+        htypes = null;
         try {
             viewEngine = (ViewEngine) app.getLoader().newInstance(params.getProperty("view.engine"));
             viewEngine.setTempdir(Utility.toPath(app.getApplicationPath(), "WEB-INF/tmp").toString());
             viewEngine.setViewdir(Utility.toPath(app.getApplicationPath(), "views").toString());
         } catch (Throwable ex) {
-            app.getLogger().error(ex);
+            if (java.lang.MANO_WEB_MACRO.DEBUG) {
+                app.getLogger().info("failed to initialization module:", ex);
+            }
+        }
+    }
+
+    public void resolveRoute(Class<?> clazz) {
+        if (clazz == null || !ActionHandler.class.isAssignableFrom(clazz)) {
+            return;
+        }
+
+        String module;
+        String controller;
+        String action;
+        StringBuilder sb = new StringBuilder();
+        Module tmpModule = clazz.getAnnotation(Module.class);
+        if (tmpModule != null) {
+            module = tmpModule.value();
+        } else {
+            module = "";
+        }
+        Named named = clazz.getAnnotation(Named.class);
+        if (named != null) {
+            controller = named.value();
+        } else {
+            controller = clazz.getSimpleName().toLowerCase();
+            if (controller.endsWith("controller")) {
+                controller = controller.substring(0, controller.length() - 10);
+            }
+        }
+        UrlMapping mapping = clazz.getAnnotation(UrlMapping.class);
+        if (mapping != null) {
+            sb.append(mapping.value());
+            if (sb.charAt(sb.length() - 1) != '/') {
+                sb.append('/');
+            }
+        } else {
+            sb.append(controller).append('/');
+        }
+        StringBuilder url;
+        Matcher matcher;
+        ArrayList<String> list = new ArrayList<>();
+        for (Method method : clazz.getDeclaredMethods()) {
+            mapping = method.getAnnotation(UrlMapping.class);
+            if (mapping == null) { //TODO:确认？
+                continue;
+            }
+
+            named = method.getAnnotation(Named.class);
+            if (named != null) {
+                action = named.value();
+            } else {
+                action = method.getName().toLowerCase();
+            }
+            url = new StringBuilder(sb);
+            url.append(mapping.value().charAt(0) == '/' ? mapping.value().substring(1) : mapping.value());
+            if (url.charAt(url.length() - 1) != '/') {
+                url.append('/');
+            }
+            matcher = pattern.matcher(url);
+            list.clear();
+            while (matcher.find()) {
+                String name = matcher.group(1);
+                list.add(name);//{1}{2}
+                try {
+                    url.replace(matcher.start(), matcher.end(), "(?<" + name + ">\\w+)");
+                } catch (Throwable ex) {
+                    if (java.lang.MANO_WEB_MACRO.DEBUG) {
+                        app.getLogger().info(sb, ex);
+                    }
+                }
+                //matcher = pattern.matcher(url);
+            }
+            Map<Integer, GetValue> map = new HashMap<>();
+            Class<?>[] types = method.getParameterTypes();
+            Annotation[][] ps = method.getParameterAnnotations();
+            boolean bk = false;
+            for (int i = 0; i < ps.length; i++) {
+
+                for (Annotation item : ps[i]) {
+                    if (item instanceof PathParam) {
+                        final String name = ((PathParam) item).value();
+                        if (!list.contains(name)) {
+                            bk = true;
+                            break;
+                        }
+                        final Class<?> ptype = types[i];
+                        map.put(i, (r, ctx) -> {
+                            return r.getPathValue(ctx, name, ptype);
+                        });
+                        break;
+                    } else if (item instanceof RequestParam) {
+                        final String name = ((RequestParam) item).value();
+                        final Class<?> ptype = types[i];
+                        map.put(i, (r, ctx) -> {
+                            return r.getQueryValue(ctx, name, ptype);
+                        });
+                        break;
+                    } else if (item instanceof SessionParam) {
+                        final String name = ((SessionParam) item).value();
+                        final Class<?> ptype = types[i];
+                        map.put(i, (r, ctx) -> {
+                            return r.getSessionValue(ctx, name, ptype);
+                        });
+                        break;
+                    } else if (item instanceof CookieParam) {
+                        final String name = ((CookieParam) item).value();
+                        final Class<?> ptype = types[i];
+                        map.put(i, (r, ctx) -> {
+                            return r.getCookieValue(ctx, name, ptype);
+                        });
+                        break;
+                    } else {
+                        bk = true;
+                    }
+                }
+                if (bk) {
+                    break;
+                }
+            }
+            //
+            if (bk) {
+                return;
+            }
+
+            if (url.charAt(url.length() - 1) != '$') {
+                if (url.charAt(url.length() - 1) == '/') {
+                    url.append("?$");
+                } else {
+                    url.append("/?$");
+                }
+            }
+            if (url.charAt(0) != '^') {
+                if (url.charAt(0) != '/') {
+                    url.insert(0, '/');
+                }
+                url.insert(0, '^');
+            }
+            method.setAccessible(true);
+            Route route = new Route();
+            route.paramsMapping = map;
+            route.action = action;
+            route.call = method;
+            route.clazz = (Class<? extends ActionHandler>) clazz;
+            route.controller = controller;
+            route.patten = url.toString();
+            route.httpMethod = mapping.verb();
+            route.module = module;
+            htypes.add(clazz);
+            routeTable.add(route);
         }
 
     }
 
     @Override
-    public boolean handle(HttpContext context) {
+    public boolean handle(HttpContext context) throws Exception {
         return this.handle(context, context.getRequest().url().getPath());
     }
 
     @Override
-    public boolean handle(HttpContext context, String tryPath) {
+    public boolean handle(HttpContext context, String tryPath) throws Exception {
         if (viewEngine == null) {
+            return false;
+        } else if (!context.getRequest().isConnected()) {
             return false;
         }
 
-        String key = context.getRequest().getMethod() + "//" + context.getRequest().url().toString();
+        String key = context.getRequest().getMethod() + ":" + context.getRequest().url().toString();
         Route route = null;
         try {
             if (cache.get(key) == null) {
 
                 for (Route r : routeTable) {
-                    
+                    if (r.patten.startsWith("res") || r.patten.startsWith("^/res") || r.patten.startsWith("^/res")) {
+                        int x = 0;
+                    }
                     if (r.test(context, tryPath)) {
                         route = r;
                         cache.set(key, r, 1000 * 60 * 10, true, null);
@@ -494,140 +655,61 @@ public class UrlRoutingModule implements HttpModule {
                 route = (Route) (cache.get(key).getValue());
             }
         } catch (Throwable ex) {
-            app.getLogger().debug("matching route error", ex);
+            if (java.lang.MANO_WEB_MACRO.DEBUG) {
+                app.getLogger().info("matching route error", ex);
+            }
             return false;
         }
 
         if (route == null) {
-            app.getLogger().debug("no matching: " + " url:" + tryPath);
+            if (java.lang.MANO_WEB_MACRO.DEBUG) {
+                app.getLogger().info("no matching: " + " url:" + tryPath);
+            }
             return false;
         }
 
         Object[] params = new Object[route.call.getParameterCount()];
-        Class<?>[] types = route.call.getParameterTypes();
         try {
-            for (int i = 0; i < types.length; i++) {
-                params[i] = Utility.cast(types[i], route.matcher.group(route.paramsMapping.get(i)));
+            route.test(context, tryPath);
+            for (int i = 0; i < params.length; i++) {
+                params[i] = route.paramsMapping.get(i).value(route, context);
             }
         } catch (Throwable ex) {
+            if (java.lang.MANO_WEB_MACRO.DEBUG) {
+                app.getLogger().info("Failed to convert parameters: " + route.patten, ex);
+            }
             return false;
         }
-        ViewContext rs = null;
-        try {
-            Object obj = context.getApplication().getLoader().newInstance(route.clazz);
-            rs = viewEngine.createContext(context);
-            rs.setController(route.controller);
-            rs.setAction(route.action);
-            route.setContext(obj, rs);
-            for (ActionFilter filter : route.getActionFilters()) {
-                filter.onActionExecuting(rs);
-            }
-            route.call.invoke(obj, params);
-            for (ActionFilter filter : route.getActionFilters()) {
-                filter.onActionExecuted(rs);
-            }
-        } catch (InvocationTargetException ex) {
-            if (ex.getTargetException() != null) {
-                context.getResponse().write(ex.getTargetException().getClass() + ":" + ex.getTargetException().getMessage());
-                app.getLogger().debug("handler error:", ex.getTargetException());
-            } else {
-                context.getResponse().write(ex.getClass() + ":" + ex.getMessage());
-                app.getLogger().debug("handler error:", ex);
-            }
-            return true;
-        } catch (Throwable ex) {
-            context.getResponse().write(ex.getClass() + ":" + ex.getMessage());
-            app.getLogger().debug("handler error:", ex);
-            return true;
+        finally{
+            route.matcher=null;
         }
-
-        /*Pattern test = null;
-         Matcher matcher;
-
-         key=fullpath+method
-         for (Route route : routeTable) {//TODO: 测试未考虑效率
-         try {
-         test = Pattern.compile(route.patten, Pattern.CASE_INSENSITIVE);
-         } catch (Throwable ex) {
-         if (java.lang.MANO_WEB_MACRO.DEBUG) {
-         app.getLogger().debug("patten error:" + route.patten, ex);
-         }
-         continue;
-         }
-         matcher = test.matcher(tryPath);
-         app.getLogger().debug("matching: patten:" + route.patten + " url:" + tryPath);
-         if (matcher.matches()) {
-
-         Object[] params = new Object[route.call.getParameterCount()];
-         Class<?>[] types = route.call.getParameterTypes();
-         try {
-         for (int i = 0; i < types.length; i++) {
-         params[i] = Utility.cast(types[i], matcher.group(route.paramsMapping.get(i)));
-         }
-         } catch (Throwable ex) {
-         continue;
-         }
-
-         try {
-         rs = viewEngine.createContext(context);
-         rs.setController(route.controller);
-         rs.setAction(route.action);
-
-         //初始化过滤程序
-         ActionFilter filter;
-         for (Class<?> clazz : route.getActionFilters()) {
-         if (actionFilters.containsKey(clazz)) {
-         filter = actionFilters.get(clazz);
-         } else {
-         filter = (ActionFilter) context.getApplication().getLoader().newInstance(clazz);
-         actionFilters.put(clazz, filter);
-         }
-         if (!filter.onActionExecuting(rs)) {
-         return true;
-         }
-         }
-
-         Object obj = context.getApplication().getLoader().newInstance(route.clazz);
-         Method m = Controller.class.getDeclaredMethod("setService", ViewContext.class);
-         m.setAccessible(true);
-         m.invoke(obj, rs);//
-
-         route.call.invoke(obj, params);
-
-         for (Class<?> clazz : route.getActionFilters()) {
-         if (actionFilters.containsKey(clazz)) {
-         filter = actionFilters.get(clazz);
-         } else {
-         filter = (ActionFilter) context.getApplication().getLoader().newInstance(clazz);
-         actionFilters.put(clazz, filter);
-         }
-         if (!filter.onActionExecuted(rs)) {
-         return true;
-         }
-         }
-
-         break;
-         } catch (InvocationTargetException ex) {
-         if (ex.getTargetException() != null) {
-         context.getResponse().write(ex.getTargetException().getClass() + ":" + ex.getTargetException().getMessage());
-         app.getLogger().debug("call route handler", ex.getTargetException());
-         } else {
-         context.getResponse().write(ex.getClass() + ":" + ex.getMessage());
-         app.getLogger().debug("call route handler", ex);
-         }
-         return true;
-         } catch (Throwable ex) {
-         context.getResponse().write(ex.getClass() + ":" + ex.getMessage());
-         app.getLogger().debug("call route handler", ex);
-         return true;
-         }
-         }
-
-         }*/
-        if (rs == null) {
-            return false;
+        ViewContext vc;
+        ActionHandler obj = app.getLoader().newInstance(route.clazz);
+        vc = viewEngine.createContext(context);
+        vc.setController(route.controller);
+        vc.setAction(route.action);
+        obj.init(vc);
+        for (ActionFilter filter : route.getActionFilters()) {
+            filter.onActionExecuting(vc);
         }
-        ActionResult result = rs.getResult();
+        route.call.invoke(obj, params);
+        for (ActionFilter filter : route.getActionFilters()) {
+            filter.onActionExecuted(vc);
+        }
+//        try {
+//            
+//        } catch (Throwable ex) {
+//            Throwable err = ex instanceof InvocationTargetException ? ((InvocationTargetException) ex).getTargetException() : ex;
+//            if (java.lang.MANO_WEB_MACRO.DEBUG) {
+//                app.getLogger().info("failed to execute handler:", err);
+//            }
+//            context.getResponse().write(err.getClass() + ":" + err.getMessage());
+//            return true;
+//        }
+        if (!context.getRequest().isConnected()) {
+            throw new java.nio.channels.ClosedChannelException();
+        }
+        ActionResult result = vc.getResult();
         if (result == null) {
             return true;
         }
@@ -635,7 +717,7 @@ public class UrlRoutingModule implements HttpModule {
             ((ViewResult) result).init(viewEngine);
         }
 
-        result.execute(rs);
+        result.execute(vc);
         return true;
     }
 
@@ -643,7 +725,9 @@ public class UrlRoutingModule implements HttpModule {
     public void dispose() {
         viewEngine = null;
         app = null;
-        routeTable.clear();
+        routeTable = null;
+        cache = null;
+        actionFilters = null;
     }
 
 }

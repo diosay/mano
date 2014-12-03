@@ -78,17 +78,17 @@ public class StaticFileModule implements HttpModule {
                     || (headers.containsKey("If-None-Match")
                     && etag.equalsIgnoreCase(headers.get("If-None-Match").value()))) {
 
-                context.getResponse().status(HttpStatus.NotModified);
+                context.getResponse().status(HttpStatus.NotModified.getStatus());
 
             } else if (headers.containsKey("Range")) {
                 if (headers.containsKey("If-Range") && !etag.equalsIgnoreCase(headers.get("If-Range").value())) {
                     context.getResponse().setContentLength(size);
-                    context.getResponse().status(HttpStatus.OK);
+                    context.getResponse().status(HttpStatus.OK.getStatus());
                     done = false;
                 } else {
                     String[] arr = headers.get("Range").value().split("=");//bytes=0-
                     if (arr.length != 2 || !"bytes".equalsIgnoreCase(arr[0])) {
-                        context.getResponse().status(HttpStatus.NotAcceptable);
+                        context.getResponse().status(HttpStatus.NotAcceptable.getStatus());
                     } else {
                         //http://blog.csdn.net/shuimuniao/article/details/8086438
                         int state = 0;
@@ -96,11 +96,11 @@ public class StaticFileModule implements HttpModule {
                         //不接受多个范围
                         arr = Utility.split(arr[1], ",", true);
                         if (arr.length != 1) {
-                            context.getResponse().status(HttpStatus.RequestedRangeNotSatisfiable);
+                            context.getResponse().status(HttpStatus.RequestedRangeNotSatisfiable.getStatus());
                         } else {
                             arr = (" " + arr[0] + " ").split("-");
                             if (arr.length != 2) {
-                                context.getResponse().status(HttpStatus.BadRequest);
+                                context.getResponse().status(HttpStatus.BadRequest.getStatus());
                             } else {
 
                                 try {
@@ -142,15 +142,15 @@ public class StaticFileModule implements HttpModule {
                                 }
 
                                 if (state != 0) {
-                                    context.getResponse().status(HttpStatus.BadRequest);
+                                    context.getResponse().status(HttpStatus.BadRequest.getStatus());
                                 } else {
                                     if (start == 0 && end == size - 1) {
                                         context.getResponse().setContentLength(size);
-                                        context.getResponse().status(HttpStatus.OK);
+                                        context.getResponse().status(HttpStatus.OK.getStatus());
                                     } else {
                                         range = true;
                                         context.getResponse().setContentLength(len);
-                                        context.getResponse().status(HttpStatus.PartialContent);
+                                        context.getResponse().status(HttpStatus.PartialContent.getStatus());
                                     }
                                     context.getResponse().setHeader("Content-Range", "bytes " + start + "-" + end + "/" + size);
                                     done = false;
@@ -161,7 +161,7 @@ public class StaticFileModule implements HttpModule {
                 }
             } else {
                 context.getResponse().setContentLength(size);
-                context.getResponse().status(HttpStatus.OK);
+                context.getResponse().status(HttpStatus.OK.getStatus());
                 done = false;
             }
 
@@ -182,7 +182,7 @@ public class StaticFileModule implements HttpModule {
                         //nothing
                         break;
                     default:
-                        context.getResponse().status(HttpStatus.MethodNotAllowed);
+                        context.getResponse().status(HttpStatus.MethodNotAllowed.getStatus());
                 }
 
             }

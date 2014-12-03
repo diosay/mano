@@ -9,7 +9,7 @@ package mano.web;
 import java.util.Map;
 import mano.caching.CacheProvider;
 import mano.caching.HashCacheProvider;
-import mano.service.Service;
+import mano.service.AbstractService;
 import mano.service.ServiceContainer;
 import mano.service.ServiceProvider;
 
@@ -17,15 +17,9 @@ import mano.service.ServiceProvider;
  *
  * @author jun <jun@diosay.com>
  */
-public class HttpSessionService extends Service implements ServiceProvider {
+public class HttpSessionService extends AbstractService implements ServiceProvider {
 
     HashCacheProvider provider;
-
-    @Override
-    public void init(ServiceContainer container, Map<String, String> params) {
-        super.init(container, params);
-        
-    }
 
     @Override
     public String getServiceName() {

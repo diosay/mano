@@ -10,7 +10,7 @@ package mano.web.runtime;
 import com.diosay.mano.io.AbstractChannelGroup;
 import com.diosay.mano.io.ChannelBuffer;
 import com.diosay.mano.io.Listener;
-import com.diosay.mano.service.Service;
+import mano.service.Service;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -39,7 +39,7 @@ import org.w3c.dom.NodeList;
  *
  * @author jun <jun@diosay.com>
  */
-public class HttpService extends AbstractChannelGroup implements Service {
+public class HttpService extends AbstractChannelGroup implements Service,Runnable {
 
     private Properties properties = new Properties();
     private int maxConnections;
@@ -61,6 +61,7 @@ public class HttpService extends AbstractChannelGroup implements Service {
     public String getName() {
         return name;
     }
+
 
     @Override
     public void run() {
@@ -98,7 +99,7 @@ public class HttpService extends AbstractChannelGroup implements Service {
 
     private void configure() throws Exception {
 
-        loader = ServiceManager.getInstance().getLoader();
+        loader = ServiceManager.getLoader();
         logger = loader.getLogger();
 
         //预处理配置值。
@@ -249,7 +250,7 @@ public class HttpService extends AbstractChannelGroup implements Service {
             info.rootdir = filename;
         }
         //info.service = this;
-        //info.serviceLoader = this.getLoader();
+        info.serviceLoader = loader;
         info.modules.putAll(machine.modules);
         info.settings.putAll(machine.settings);
         info.exports.putAll(machine.exports);

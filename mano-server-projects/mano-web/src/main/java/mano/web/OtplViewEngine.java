@@ -10,13 +10,19 @@ import com.diosay.otpl.runtime.BuiltinFunctionInterface;
 import com.diosay.otpl.runtime.CodeLoader;
 import com.diosay.otpl.runtime.ExecutionContext;
 import com.diosay.otpl.runtime.Interpreter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import mano.http.HttpContext;
@@ -24,9 +30,10 @@ import mano.util.Utility;
 
 /**
  * Open-TPL 视图引擎。
+ *
  * @author jun <jun@diosay.com>
  */
-public class OtplViewEngine extends ViewEngine{
+public class OtplViewEngine extends ViewEngine {
 
     private Interpreter interpreter = new Interpreter();
 
@@ -35,11 +42,11 @@ public class OtplViewEngine extends ViewEngine{
         //private HashMap<String, Object> items = new HashMap<>();
         private Stack<Object> stack = new Stack<>();
         private HashMap<String, CodeLoader> loaders = new HashMap<>();
-        
-        public SimpleExecutionContext(HttpContext c){
+
+        public SimpleExecutionContext(HttpContext c) {
             super(c);
         }
-        
+
         @Override
         public String getBasedir() {
             return getViewdir();
@@ -64,7 +71,6 @@ public class OtplViewEngine extends ViewEngine{
 //            }
 //            return null;//TODO:报错？
 //        }
-
         @Override
         public void push(Object value) {
             stack.push(value);
@@ -124,10 +130,8 @@ public class OtplViewEngine extends ViewEngine{
 
         @Override
         public void freeInterpreter(Interpreter interpreter) {
-            
-        }
 
-        
+        }
 
         @Override
         public CodeLoader getLoader(File source, Interpreter interpreter) throws Exception {
@@ -153,6 +157,7 @@ public class OtplViewEngine extends ViewEngine{
         }
         private int lineNumber;
         private BuiltinFunctionInterface bfi;
+
         @Override
         public void setCurrentSourceLine(int line) {
             lineNumber = line;
@@ -165,8 +170,8 @@ public class OtplViewEngine extends ViewEngine{
 
         @Override
         public BuiltinFunctionInterface calls() {
-            if(bfi==null){
-                bfi=new BFI();
+            if (bfi == null) {
+                bfi = new BFI();
             }
             return bfi;
         }
@@ -176,6 +181,19 @@ public class OtplViewEngine extends ViewEngine{
 
             if ("str".equals(funcName)) {
                 return calls().str(args);
+            } else if ("len".equals(funcName)) {
+                if (args == null || args.length == 0 || args[0] == null) {
+                    return -1;
+                } else if (args[0] instanceof CharSequence) {
+                    return ((CharSequence) args[0]).length();
+                } else if (args[0].getClass().isArray()) {
+                    return Array.getLength(args[0]);
+                } else if (args[0] instanceof Collection) {
+                    return ((Collection) args[0]).size();
+                } else if (args[0] instanceof Map) {
+                    return ((Map) args[0]).size();
+                }
+                return -1;
             } else if ("iterator".equals(funcName)) {
                 return calls().iterator(args[0]);
             } else if ("iterator$hasNext".equals(funcName)) {
@@ -183,7 +201,7 @@ public class OtplViewEngine extends ViewEngine{
                 return itor.hasNext();
             } else if ("iterator$next".equals(funcName)) {
                 Iterator itor = (Iterator) args[0];
-                return itor.next();
+                return !itor.hasNext()?null:itor.next();
             } else if ("indexer".equals(funcName)) {
                 if (args.length < 2) {
                     throw new UnsupportedOperationException("参数不匹配：" + funcName);
@@ -331,23 +349,44 @@ public class OtplViewEngine extends ViewEngine{
         }
 
     }
-    
+
     @Override
     public ViewContext createContext(HttpContext context) {
         return new SimpleExecutionContext(context);
     }
-    
+    private void printRoot(StringWriter sb, Throwable t) {
+        if (t == null) {
+            return;
+        }
+        sb.append("<b>root</b><p><pre>");
+        StringWriter sw = new StringWriter();
+        try (PrintWriter pw = new PrintWriter(sw)) {
+            pw.println();
+            t.printStackTrace(pw);
+        }
+        sb.append(sw.toString());
+        sb.append("</pre></p>");
+        printRoot(sb, t.getCause());
+    }
     @Override
     public void render(ViewContext context) {
         try {
-            String file=context.getPath();
-            if(file.startsWith("~/") || file.startsWith("~\\")){
-                file=Utility.toPath(this.getViewdir(), file.substring(1)).toString();
+            String file = context.getPath();
+            if (file.startsWith("~/") || file.startsWith("~\\")) {
+                file = Utility.toPath(this.getViewdir(), file.substring(1)).toString();
             }
-            interpreter.exec((ExecutionContext)context, new File(file));
+            interpreter.exec((ExecutionContext) context, new File(file));
         } catch (Exception ex) {
-            context.getContext().getResponse().write(ex.getMessage());
+            StringWriter sw = new StringWriter();
+            sw.append("<pre>");
+            try (PrintWriter pw = new PrintWriter(sw)) {
+                pw.println();
+                ex.printStackTrace(pw);
+            }
+            sw.append("</pre>");
+            printRoot(sw,ex.getCause());
+            context.getContext().getResponse().write(sw.toString());
         }
     }
-    
+
 }
