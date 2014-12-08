@@ -339,6 +339,26 @@ public class UrlRoutingModule implements HttpModule {
                         }
                     }
                 }
+                
+                group = clazz.getAnnotation(FilterGroup.class);
+                if (group != null && group.value() != null && group.value().length > 0) {
+                    for (Filter f : group.value()) {
+                        if (!tmp.contains(f.value())) {
+                            tmp.add(f.value());
+                        }
+                    }
+                } else {
+                    Filter[] tmps = clazz.getAnnotationsByType(Filter.class);
+                    if (tmps != null) {
+                        for (Filter f : tmps) {
+                            if (!tmp.contains(f.value())) {
+                                tmp.add(f.value());
+                            }
+                        }
+                    }
+                }
+                
+                
                 ArrayList<ActionFilter> tmp2 = new ArrayList<>();
                 ActionFilter filter;
                 for (Class<?> c2 : tmp) {
