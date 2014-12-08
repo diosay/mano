@@ -8,7 +8,7 @@ package mano;
 
 /**
  * 封装一个方法，该方法只有一个参数并且不返回值。
- * @author jun <jun@diosay.com>
+ * @author johnwhang
  */
 @FunctionalInterface
 public interface Action<T> {

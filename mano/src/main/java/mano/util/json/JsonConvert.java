@@ -11,6 +11,7 @@ import mano.ContextClassLoader;
 /**
  *
  * @author jun <jun@diosay.com>
+ * @deprecated 
  */
 public final class JsonConvert {
 

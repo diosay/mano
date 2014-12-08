@@ -9,6 +9,7 @@ package mano.util.json;
 /**
  *
  * @author jun <jun@diosay.com>
+ * @deprecated 
  */
 public interface JsonConverter {
     

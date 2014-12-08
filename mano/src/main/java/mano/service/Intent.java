@@ -140,16 +140,16 @@ public final class Intent implements Callable<Intent> {
 
     /**
      * 设置一个回调，并提交到服务总线。
-     * @param action
+     * @param callback 执行完成后的回调方法。
      * @return 
      */
-    public synchronized final Intent submit(Action<Intent> action) {
-        if (submited || result != null) {
+    public synchronized final Intent submit(Action<Intent> callback) {
+        if (this.submited || this.result != null) {
             throw new InvalidOperationException("This Intent has been already submit.");
         }
-        callback = action;
-        result = ThreadPool.submit(this);
-        submited = true;
+        this.callback = callback;
+        this.result = ThreadPool.submit(this);
+        this.submited = true;
         return this;
     }
 

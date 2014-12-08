@@ -9,8 +9,7 @@ package mano.web;
 import mano.ContextClassLoader;
 import mano.http.HttpContext;
 import mano.http.HttpPostFile;
-import mano.util.json.JsonConvert;
-import mano.util.json.JsonConverter;
+import mano.data.json.*;
 import mano.util.logging.Logger;
 
 /**
@@ -203,10 +202,16 @@ public abstract class Controller implements ActionHandler {
      * 设置 JSON 转换程序。
      *
      * @param converter
+     * @deprecated
      */
     protected final void setJsonConverter(JsonConverter converter) {
         jsonConverter = converter;
     }
+
+    /**
+     *
+     */
+    public static String JSON_CONVERTER_APP_KEY = "__WEBAPP_JSON_CONVERTER";
 
     /**
      * 将一个对象转换为 JSON 格式，并设置到响应结果以待输出到客户端。
@@ -215,13 +220,13 @@ public abstract class Controller implements ActionHandler {
      */
     protected void json(Object src) {
         if (jsonConverter == null) {
-            jsonConverter = JsonConvert.getConverter(getLoader());
+            jsonConverter = this.getApplication().get(JSON_CONVERTER_APP_KEY) == null ? null : (JsonConverter) this.getApplication().get(JSON_CONVERTER_APP_KEY);
+            //   JsonConvert.getConverter(getLoader());
 
             if (jsonConverter == null) {
-                throw new NullPointerException("Controller.json:Not found JsonConverter");
+                throw new JsonException(new NullPointerException("Controller.json:Not found JsonConverter"));
             }
         }
-
         getContext().getResponse().setContentType("application/json;charset=utf-8");
         getContext().getResponse().write(jsonConverter.serialize(src));
     }
