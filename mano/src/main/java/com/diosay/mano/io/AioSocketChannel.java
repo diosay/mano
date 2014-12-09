@@ -102,7 +102,11 @@ public class AioSocketChannel implements Channel {
     }
 
     protected void failed(Throwable ex) {
-        ex.printStackTrace();
+        System.err.println("未处理异常：");
+        ex.printStackTrace(System.err);
+        if(this.isOpen()){
+            this.close();
+        }
     }
 
     @Override

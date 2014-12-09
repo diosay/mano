@@ -50,7 +50,7 @@ public abstract class AbstractChannelGroup {
             if (!worker.getListener().workers.contains(worker)) {
                 worker.getListener().workers.add(worker);
                 channelCount.getAndIncrement();
-            }else{
+            } else {
                 return;
             }
         }
@@ -78,24 +78,24 @@ public abstract class AbstractChannelGroup {
                 worker.getListener().workers.remove(worker);
                 channelCount.getAndDecrement();
                 channelCount.notify();
-            }else{
-                return;
+
+                try {
+                    ChannelHanlder handler = getHandler();
+                    handler.closed(worker);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+
             }
         }
-        
-        try {
-            ChannelHanlder handler = getHandler();
-            handler.closed(worker);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+
     }
 
     /**
      * 开始监听
      */
     public void start() {
-        if(hanlderType==null){
+        if (hanlderType == null) {
             throw new IllegalArgumentException("未设置处理程序。");
         }
         listeners.forEach((listener) -> {
@@ -114,30 +114,33 @@ public abstract class AbstractChannelGroup {
         }
         return service;
     }
-    
+
     /**
      * 获取一个缓冲区。
-     * @return 
+     *
+     * @return
      */
     public abstract ChannelBuffer allocate();
-    
+
     /**
      * 释放一个缓冲区。
-     * @param buffer 
+     *
+     * @param buffer
      */
     public abstract void free(ChannelBuffer buffer);
-    
+
     /**
      * 设置处理程序类型。
-     * @param type 
+     *
+     * @param type
      */
-    public void setHandler(Class<? extends ChannelHanlder> type){
-        hanlderType=type;
+    public void setHandler(Class<? extends ChannelHanlder> type) {
+        hanlderType = type;
     }
-    
-    public ChannelHanlder getHandler(){
+
+    public ChannelHanlder getHandler() {
         try {
-            return  hanlderType.newInstance();
+            return hanlderType.newInstance();
         } catch (InstantiationException ex) {
             ex.printStackTrace();
         } catch (IllegalAccessException ex) {
@@ -150,5 +153,4 @@ public abstract class AbstractChannelGroup {
 
     //http://blog.csdn.net/woshixuye/article/details/18862361
     //http11
-
 }

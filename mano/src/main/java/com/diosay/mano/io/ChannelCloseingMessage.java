@@ -20,7 +20,9 @@ public class ChannelCloseingMessage<T extends Channel> implements Message<T> {
 
     @Override
     public void process(T channel, LockState state) throws IOException {
+        System.out.println("close channel");
         channel.close();
+        state.notifyDone();
         
     }
 

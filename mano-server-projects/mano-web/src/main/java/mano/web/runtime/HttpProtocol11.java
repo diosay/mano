@@ -38,7 +38,8 @@ public class HttpProtocol11 implements ChannelHanlder<HttpChannel> {
 
     @Override
     public void closed(HttpChannel channel) {
-
+        channel.getListener().getGroup().free(channel.buffer);
+        channel.buffer=null;
     }
 
     @Override
@@ -112,6 +113,12 @@ public class HttpProtocol11 implements ChannelHanlder<HttpChannel> {
             channel.close();
             return;
         } else if (exc instanceof ClosedChannelException) {
+            channel.close();
+            return;
+        }else if(exc.getMessage()!=null && exc.getMessage().indexOf("connection was aborted")>0){
+            channel.close();
+            return;
+        }else if(!channel.isOpen()){
             channel.close();
             return;
         }

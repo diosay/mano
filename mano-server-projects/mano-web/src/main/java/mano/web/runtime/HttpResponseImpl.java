@@ -9,6 +9,7 @@ package mano.web.runtime;
 import com.diosay.mano.io.ByteArrayMessage;
 import com.diosay.mano.io.ByteBufferMessage;
 import com.diosay.mano.io.Channel;
+import com.diosay.mano.io.ChannelCloseingMessage;
 import com.diosay.mano.io.ChannelHanlder;
 import com.diosay.mano.io.FileReginMessage;
 import com.diosay.mano.io.Message;
@@ -282,23 +283,7 @@ public class HttpResponseImpl extends HttpResponse {
     public void end() {
         endFlush = true;
         flush();
-        channel.enqueue(new Message() {
-
-            @Override
-            public void process(Channel channel, LockState state) throws IOException {
-                channel.close();
-                state.notifyDone();
-            }
-
-            @Override
-            public ChannelHanlder getHandler() {
-                return null;
-            }
-
-            @Override
-            public void reset() {
-            }
-        });
+        channel.enqueue(new ChannelCloseingMessage());
     }
 
 }
