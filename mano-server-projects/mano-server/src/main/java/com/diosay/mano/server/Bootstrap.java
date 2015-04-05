@@ -14,7 +14,7 @@ import java.util.NoSuchElementException;
 import mano.ContextClassLoader;
 import mano.Mano;
 import mano.service.Intent;
-import mano.service.Service;
+import mano.service.IService;
 import mano.service.ServiceManager;
 import mano.service.ServiceProvider;
 import mano.util.NameValueCollection;
@@ -38,7 +38,7 @@ public class Bootstrap extends ServiceManager implements ServiceProvider {
     /**
      * 临时
      */
-    private NameValueCollection<Service> services;
+    private NameValueCollection<IService> services;
 
     /**
      * 使用指定加载器初始化。
@@ -53,7 +53,8 @@ public class Bootstrap extends ServiceManager implements ServiceProvider {
      * 默认初始化。
      */
     public Bootstrap() {
-        this(new ContextClassLoader(Logger.getLog()));//TODO:
+        this(null);
+        //this(new ContextClassLoader(null));//TODO:
     }
 
     @Override
@@ -62,7 +63,7 @@ public class Bootstrap extends ServiceManager implements ServiceProvider {
             return null;
         }
         if (Logger.class.getName().equals(serviceType.getName())) {
-            return (T) getLogger();
+            //return (T) getLogger();
         } else if (ContextClassLoader.class.getName().equals(serviceType.getName()) || ClassLoader.class.getName().equals(serviceType.getName())) {
             return (T) getLoader();
         }
@@ -182,7 +183,7 @@ public class Bootstrap extends ServiceManager implements ServiceProvider {
                 if (s == null || "".equals(s.trim())) {
                     throw new NoSuchElementException("丢失 Logger [name] 属性.");
                 } else {
-                    getLoader().setLogger(Logger.getLog());
+                    //getLoader().setLogger(Logger.getLog());
                 }
 
                 nodes = helper.selectNodes(node, "handler");
@@ -214,7 +215,7 @@ public class Bootstrap extends ServiceManager implements ServiceProvider {
                 String name = attrs.getNamedItem("name").getNodeValue();
                 String type = attrs.getNamedItem("class").getNodeValue();
                 try {
-                    Service service = (Service) getLoader().newInstance(type);
+                    IService service = (IService) getLoader().newInstance(type);
                     service.getProperties().setProperty("service_name", name);
                     nodes2 = helper.selectNodes(nodes.item(i), "property");
                     if (nodes2 != null) {
@@ -248,13 +249,13 @@ public class Bootstrap extends ServiceManager implements ServiceProvider {
 
     public void start(String configFile, String serverDir) {
 
-        getLogger().info("服务器启动中...");
+        //getLogger().info("服务器启动中...");
         try {
 
             configure(configFile, serverDir);
 
             if (services.isEmpty()) {
-                getLogger().fatal("服务列表为空，没有启动任何服务。");
+                //getLogger().fatal("服务列表为空，没有启动任何服务。");
                 System.exit(0);
             } else {
                 services.values().stream().forEach((service) -> {
@@ -262,15 +263,15 @@ public class Bootstrap extends ServiceManager implements ServiceProvider {
                         service.init();
                         ThreadPool.execute((Runnable)service);
                     } catch (Exception ex) {
-                        getLogger().error(ex);
+                        //getLogger().error(ex);
                     }
                 });
-                getLogger().info("服务器已经启动成功。");
+                //getLogger().info("服务器已经启动成功。");
 
             }
 
         } catch (Exception ex) {
-            getLogger().fatal(ex);
+            //getLogger().fatal(ex);
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ex1) {
@@ -286,7 +287,7 @@ public class Bootstrap extends ServiceManager implements ServiceProvider {
     }
 
     public void stop() {
-        getLogger().info("服务器已经成功停止。");
+        //getLogger().info("服务器已经成功停止。");
         try {
             Thread.sleep(1000);
         } catch (InterruptedException ex1) {
@@ -303,7 +304,7 @@ public class Bootstrap extends ServiceManager implements ServiceProvider {
     }
     
     
-    public static void main(String[] args) {
+    public static void mainxxx(String[] args) {
         
 //        try {
 //            sss();
@@ -314,15 +315,15 @@ public class Bootstrap extends ServiceManager implements ServiceProvider {
         
         Bootstrap server = new Bootstrap();
         //
-        //String lib_path = "E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\target\\build\\lib";
-        //String web_path = "E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\src\\main\\webapp";
+        String lib_path = "E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\target\\build\\lib";
+        String web_path = "E:\\repositories\\java\\ifcc\\ecp-foreend\\ecp_webapp\\src\\main\\webapp";
 
-        ////lib_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\target\\build\\lib";
-        ////web_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\src\\main\\webapp";
-        //Mano.setProperty("manoserver.testing.test_webapp.config_file", web_path);
-        //Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", lib_path);
-        //server.start("E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\src\\resources\\conf\\server.xml", "E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\target\\build");
-        server.start(null, null);
+        //lib_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\target\\build\\lib";
+        //web_path="E:\\repositories\\java\\mano\\test-webapp-projects\\test-webapp\\src\\main\\webapp";
+        Mano.setProperty("manoserver.testing.test_webapp.config_file", web_path);
+        Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", lib_path);
+        server.start("E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\src\\resources\\conf\\server.xml", "E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\target\\build");
+        //server.start(null, null);
         server.loop();
     }
 

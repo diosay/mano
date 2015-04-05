@@ -10,7 +10,7 @@ package mano.util;
  *
  * @author jun <jun@diosay.com>
  */
-public class CachedObjectPool<T> extends Pool<T> {
+public class CachedObjectPool<T> extends PoolOld<T> {
 
     private int min;
     private int max;

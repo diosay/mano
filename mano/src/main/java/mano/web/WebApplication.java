@@ -26,6 +26,7 @@ import mano.http.HttpModule;
 import mano.http.HttpServer;
 import mano.http.HttpStatus;
 import mano.util.Utility;
+import mano.util.logging.ILogger;
 import mano.util.logging.Logger;
 
 /**
@@ -44,7 +45,7 @@ public class WebApplication extends PropertyContext {
         return loader;
     }
 
-    public Logger getLogger() {
+    public ILogger getLogger() {
         return loader.getLogger();
     }
 
@@ -315,7 +316,7 @@ public class WebApplication extends PropertyContext {
             Mano.setProperty("manoserver.testing.test_webapp.config_file", args.webappDirectory);
             Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", args.libDirectory);
 
-            ContextClassLoader loader = new ContextClassLoader(Logger.getLog(), new URL[0], args.loader);
+            ContextClassLoader loader = new ContextClassLoader(null, new URL[0], args.loader);
             loader.register(Utility.toPath(args.serverDirectory, "bin").toString());
             loader.register(Utility.toPath(args.serverDirectory, "lib").toString());
             Class<?> instance = loader.loadClass("com.diosay.mano.server.Bootstrap");

@@ -177,8 +177,7 @@ public final class Intent implements Callable<Intent> {
             if (callback != null) {
                 callback.run(this);
             }
-            throw ex; //TODO//
-            //return this;
+            throw ex;
         }
         if (callback != null) {
             callback.run(this);

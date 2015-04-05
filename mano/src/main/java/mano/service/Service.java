@@ -1,34 +1,113 @@
 /*
- * Copyright (C) 2014 The MANO Project. All rights reserved. 
+ * Copyright (C) 2014-2015 The MANO Project. All rights reserved.
  * 
  * See more http://mano.diosay.com/
  * 
  */
 package mano.service;
 
-import java.util.Properties;
+import mano.ContextClassLoader;
 
 /**
- * 表示一个运行时服务。
- * @author junhwong
+ * 
+ * @author johnwhang
  */
-public interface Service {
-    
+public abstract class Service implements Runnable {
+
+    private ContextClassLoader loader;
+    private ServiceContainer container;
+    private boolean isRunning;
+    private boolean isStopped;
     /**
-     * 获取与此实例关联的配置属性。
-     * @return 
+     * 用于获取启动服务时的配置文件的{@code key}。
      */
-    Properties getProperties();
+    public static final String SERVICE_CONFIG_KEY="service.config.file";
+    public final synchronized void init(ContextClassLoader loader, ServiceContainer container) {
+        if (loader == null) {
+            throw new NullPointerException("loader");
+        }
+        if (container == null) {
+            throw new NullPointerException("container");
+        }
+        container.add(this);
+        this.loader = loader;
+        this.container = container;
+    }
+
+    @Override
+    public final synchronized void run() {
+        if (isRunning || this.isStopped) {
+            return;
+        }
+        try {
+            this.isRunning = true;
+            this.onInit();
+            if (loader.getLogger().isDebugEnabled()) {
+                loader.getLogger().debug("Service is initialized:" + this.getServiceName());
+            }
+            this.onStart();
+        } catch (Exception ex) {
+            if (loader.getLogger().isErrorEnabled()) {
+                loader.getLogger().error("Service was initializing failed:"+ this.getServiceName(),ex);
+            }
+            stop();
+        }
+    }
+
+    public final synchronized void stop() {
+        if (!this.isRunning || this.isStopped) {
+            return;
+        }
+        try {
+            this.onStop();
+        } catch (Exception ex) {
+            if (loader.getLogger().isErrorEnabled()) {
+                loader.getLogger().error(ex);
+            }
+        }
+        this.isRunning = false;
+        this.isStopped = true;
+        this.container.remove(this);
+        if (loader.getLogger().isDebugEnabled()) {
+            loader.getLogger().debug("Service is stopped:" + this.getServiceName());
+        }
+        try {
+            this.onDestroy();
+        } catch (Exception ex) {
+            if (loader.getLogger().isDebugEnabled()) {
+                loader.getLogger().debug(ex);
+            }
+        }
+    }
+
+    public final ContextClassLoader getContext() {
+        return this.loader;
+    }
     
-    /**
-     * 获取当前的唯一服务名称。
-     * @return 
-     */
-    String getName();
-    
-    /**
-     * 在启动之前初始化该服务。
-     */
-    void init() throws Exception;
-    
+    public final boolean isRunning(){
+        return this.isRunning;
+    }
+
+    public abstract String getServiceName();
+
+    protected abstract void onInit() throws Exception;
+
+    protected abstract void onStart() throws Exception;
+
+    protected abstract void onStop() throws Exception;
+
+    protected void onDestroy() throws Exception {
+        this.loader = null;
+        this.container = null;
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            this.stop();
+        } catch (Throwable e) {
+            //nop
+        }
+        super.finalize();
+    }
 }

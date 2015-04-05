@@ -2,14 +2,19 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.diosay</groupId>
-    <artifactId>mano-server</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <artifactId>mano-bootstrap</artifactId>
+    <version>1.4.0-BETA</version>
     <packaging>jar</packaging>
-    <name>Mano :: Server</name>
+    <name>Mano :: Bootstrap</name>
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>mano-web</artifactId>
+            <artifactId>mano</artifactId>
+            <version>1.4.0-BETA</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mano-service-http</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

@@ -22,6 +22,5 @@ public class ConsoleHandler extends StreamHandler{
     @Override
     public void close() throws IOException {
         //nothing
-        
     }
 }

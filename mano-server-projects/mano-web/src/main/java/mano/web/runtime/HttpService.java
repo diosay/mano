@@ -10,7 +10,6 @@ package mano.web.runtime;
 import com.diosay.mano.io.AbstractChannelGroup;
 import com.diosay.mano.io.ChannelBuffer;
 import com.diosay.mano.io.Listener;
-import mano.service.Service;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -22,10 +21,12 @@ import java.util.concurrent.Executors;
 import mano.ContextClassLoader;
 import mano.Mano;
 import mano.http.HttpModuleSettings;
+import mano.service.Service;
 import mano.service.ServiceManager;
 import mano.util.NameValueCollection;
 import mano.util.Pool;
 import mano.util.Utility;
+import mano.util.logging.ILogger;
 import mano.util.logging.Logger;
 import mano.util.xml.XmlException;
 import mano.util.xml.XmlHelper;
@@ -45,7 +46,7 @@ public class HttpService extends AbstractChannelGroup implements Service,Runnabl
     private int maxConnections;
     private int bufferSize;
     ContextClassLoader loader;
-    private Logger logger;
+    private ILogger logger;
     private String name;
     Pool<ChannelBuffer> bufferPool;
     WebApplicationStartupInfo machine;
@@ -469,7 +470,7 @@ public class HttpService extends AbstractChannelGroup implements Service,Runnabl
     
     
     
-    public static void main(String[] args) throws Exception {
+    public static void mainXXX(String[] args) throws Exception {
         HttpService service=new HttpService();
         service.getProperties().setProperty("config_file", "E:\\repositories\\java\\mano\\mano-server-projects\\mano-server\\src\\resources\\conf\\server.xml");
         service.getProperties().setProperty("buffer_size", "8k");

@@ -14,38 +14,72 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
-import mano.util.logging.Logger;
+import mano.util.logging.ILogger;
 
 /**
  * 上下文类加载器
+ *
  * @author jun <jun@diosay.com>
  */
-public class ContextClassLoader extends URLClassLoader {
+public class ContextClassLoader extends URLClassLoader implements IProperties {
 
-    private Logger logger;
+    private ILogger logger;
+    private ContextClassLoader parent;
 
-    public ContextClassLoader(Logger logger, URL[] urls, ClassLoader parent) {
+    private ContextClassLoader(URL[] urls, ClassLoader parent) {
         super(urls, parent);
+    }
+
+    public ContextClassLoader(ILogger logger, URL[] urls, ClassLoader parent) {
+        this(urls, parent);
+        if (logger == null) {
+            throw new IllegalArgumentException("logger");
+        }
         this.logger = logger;
     }
 
-    public ContextClassLoader(Logger logger, URL[] urls) {
-        this(logger, urls, ContextClassLoader.class.getClassLoader() == null ? ClassLoader.getSystemClassLoader() : ContextClassLoader.class.getClassLoader());
+    public ContextClassLoader(ILogger logger) {
+        this(logger, new URL[0], ContextClassLoader.class.getClassLoader());
     }
 
-    public ContextClassLoader(Logger logger) {
-        this(logger, new URL[0]);
+    public ContextClassLoader(ContextClassLoader parent) {
+        this(new URL[0], parent.getParent());
+        this.parent = parent;
     }
 
-    public Logger getLogger() {
-        return this.logger;
+    /**
+     * 获取上下文日志器。
+     */
+    public ILogger getLogger() {
+        return this.logger != null ? this.logger : (this.parent == null ? null : this.parent.getLogger());
     }
 
-    public void setLogger(Logger l) {
-        this.logger = l;
+    /**
+     * 设置日志器到上下文。
+     *
+     * @param logger
+     */
+    public void setLogger(ILogger logger) {
+        if (logger == null) {
+            throw new IllegalArgumentException("logger");
+        }
+        this.logger = logger;
     }
 
+    /**
+     * 获取父级加载器。
+     */
+    public ContextClassLoader getParentLoader() {
+        return this.parent;
+    }
+
+    /**
+     * 注册类路径到上下文。
+     *
+     * @param paths
+     */
     public void register(String... paths) {
         if (paths == null || paths.length == 0) {
             return;
@@ -53,7 +87,6 @@ public class ContextClassLoader extends URLClassLoader {
 
         File file;
         final Set<URL> set = new HashSet<>();
-        //final Set<String> urls = new HashSet<>();
         String name;
         for (String path : paths) {
             file = new File(path);
@@ -61,20 +94,18 @@ public class ContextClassLoader extends URLClassLoader {
                 try {
                     set.add(new URI(path).toURL());
                 } catch (Throwable ex) {
-                    logger.warn("[ContextClassLoader.register]Invalid path(URL ERROR 1) :" + path);
+                    getLogger().warn("Invalid class path(Not found or Incorrect URL) :" + path);
                 }
                 continue;
-            }
-
-            if (!file.isDirectory()) {
+            } else if (!file.isDirectory()) {
                 name = file.getName().toLowerCase();
                 if (!(name.endsWith(".jar") || name.endsWith(".class"))) {
-                    logger.warn("[ContextClassLoader.register]Invalid path(Is not a valid JAR file or Class file):" + path);
+                    getLogger().warn("Invalid class path(Is not a valid JAR file or Class file):" + path);
                 }
                 try {
                     set.add(file.toURI().toURL());
                 } catch (Throwable ex) {
-                    logger.warn("[ContextClassLoader.register]Invalid path(URL ERROR 2)", ex);
+                    getLogger().warn("Invalid class path(URL ERROR 2)", ex);
                 }
             } else {
                 file.listFiles((File f) -> {
@@ -83,7 +114,7 @@ public class ContextClassLoader extends URLClassLoader {
                         try {
                             set.add(f.toURI().toURL());
                         } catch (Throwable ex) {
-                            logger.warn("[ContextClassLoader.register]Invalid path(URL ERROR 3)", ex);
+                            getLogger().warn("Invalid class path(URL ERROR 3)", ex);
                         }
                     }
                     return false;
@@ -98,6 +129,15 @@ public class ContextClassLoader extends URLClassLoader {
         }
     }
 
+    /**
+     * 实例化一个类。
+     *
+     * @param <T>
+     * @param clazz
+     * @param args
+     * @return
+     * @throws ReflectiveOperationException
+     */
     public <T> T newInstance(Class<T> clazz, Object... args) throws ReflectiveOperationException {
         int length = args == null ? 0 : args.length;
         if (length > 0) {
@@ -135,15 +175,94 @@ public class ContextClassLoader extends URLClassLoader {
         throw new ReflectiveOperationException();
     }
 
+    /**
+     * 实例化一个类。
+     *
+     * @param clazz
+     * @param args
+     * @return
+     * @throws ReflectiveOperationException
+     */
     public Object newInstance(String clazz, Object... args) throws ReflectiveOperationException {
         return this.newInstance(this.loadClass(clazz, true), args);
     }
+
+    private Properties properties;// = new Properties();
+
+    /**
+     * 获取配置属性。
+     */
+    public Properties getProperties() {
+        return getProperties(false);
+    }
+    /**
+     * 获取配置属性。
+     */
+    public Properties getProperties(boolean resolve) {
+        return properties != null ? properties : (resolve && this.parent != null ? this.parent.getProperties() : null);
+    }
+    
+    public void setProperties(Properties props) {
+        properties = props;
+    }
+    @Override
+    public String getProperty(String key) {
+        return getProperty(key,false);
+    }
+    
+    @Override
+    public String getProperty(String key, boolean resolve) {
+        if(properties!=null){
+            if(properties.containsKey(key)){
+                return properties.getProperty(key);
+            }else if(resolve && parent!=null){
+                return parent.getProperty(key);
+            }
+        }else if(resolve && parent!=null){
+            return parent.getProperty(key);
+        }
+        return null;
+    }
+
+    @Override
+    public synchronized void setProperty(String key, String value) {
+        if(properties==null){
+            properties = new Properties();
+        }
+        properties.setProperty(key, value);
+    }
+    @Override
+    public boolean containsProperty(String key) {
+        return containsProperty(key,false);
+    }
+    @Override
+    public boolean containsProperty(String key, boolean resolve) {
+        
+        if(properties!=null){
+            if(properties.containsKey(key)){
+                return true;
+            }else if(resolve && parent!=null){
+                return parent.containsProperty(key);
+            }
+        }else if(resolve && parent!=null){
+            return parent.containsProperty(key);
+        }
+        
+        return false;
+    }
+
     private HashMap<String, Class<?>> mappings = new HashMap<>();
 
+    /**
+     * @deprecated 
+     */
     public void registerExport(String name, String clazz) throws ClassNotFoundException {
         mappings.put(name, this.loadClass(clazz, true));
     }
 
+    /**
+     * @deprecated 
+     */
     public Object getExport(String name, Object... args) throws ReflectiveOperationException {
         if (mappings.containsKey(name)) {
             return newInstance(mappings.get(name), args);
@@ -151,7 +270,13 @@ public class ContextClassLoader extends URLClassLoader {
         return null;
     }
 
+    /**
+     * @deprecated 
+     */
     public <T> T getExport(Class<T> clazz, String name, Object... args) throws ReflectiveOperationException {
         return (T) getExport(name, args);
     }
+
+    
+
 }

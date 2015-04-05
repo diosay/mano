@@ -6,7 +6,7 @@
  */
 package mano.web;
 
-import mano.service.Service;
+import mano.service.IService;
 import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -29,7 +29,7 @@ import mano.util.logging.Logger;
  */
 public class WebApplicationStartupInfo {
 
-    public Service service;
+    public IService service;
     public ContextClassLoader serviceLoader;
     public NameValueCollection<HttpModuleSettings> modules = new NameValueCollection<>();
     public String name;

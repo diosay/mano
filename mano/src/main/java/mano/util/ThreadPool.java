@@ -30,4 +30,51 @@ public class ThreadPool {
     public static <T> Future<T> submit(Callable<T> task) {
         return service.submit(task);
     }
+
+    private static java.util.concurrent.CopyOnWriteArrayList<Runnable> scheduledTasks = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static Runnable scheduler = () -> {
+        while (true) {
+            
+            try {
+                Thread.sleep(1000 * 60 * 1);
+            } catch (InterruptedException ex) {
+                execute(ThreadPool.scheduler);
+                System.out.println("Scheduler will be re-start timing,This operation was caused by Thread Interrupted.");
+                return;
+            }
+            System.out.println("Executing schedule Task.");
+            scheduledTasks.forEach(task -> {
+                try {
+                    task.run();
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                }
+            });
+            System.gc();
+            System.out.println("Executed schedule Task.");
+        }
+    };
+
+    static {
+        execute(ThreadPool.scheduler);
+    }
+
+    /**
+     * 添加调度任务。
+     *
+     * @param task
+     */
+    public static void addScheduledTask(Runnable task) {
+        scheduledTasks.add(task);
+    }
+
+    /**
+     * 移除调度任务。
+     *
+     * @param task
+     */
+    public static void removeScheduledTask(Runnable task) {
+        scheduledTasks.remove(task);
+    }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 The MANO Project. All rights reserved.
+ * Copyright (C) 2014-2015 The MANO Project. All rights reserved.
  * 
  * See more http://mano.diosay.com/
  * 
@@ -9,7 +9,7 @@ package mano;
 
 /**
  * 表示一个事件处理程序。
- * @author junhwong
+ * @author sixmoon
  */
 @FunctionalInterface
 public interface EventHandler<S extends Object,A extends EventArgs> {

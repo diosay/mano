@@ -12,6 +12,7 @@
         <module>../mano-server-projects/open-tpl</module>
         <module>../mano-server-projects/mano-server</module>
         <module>../maven-manoserver-plugin</module>
+        <module>mano-tplib</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

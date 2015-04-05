@@ -13,11 +13,12 @@ import mano.InvalidOperationException;
 import mano.util.logging.Logger;
 
 /**
- * 全局的服务管理器。
- *
+ * 全局的服务管理器。logger.get(name).err(msg,err)
+ *logger.add(handler)
+ * logger.remove(handler)
  * @author junhwong
  */
-public abstract class ServiceManager implements ServiceContainer{
+public abstract class ServiceManager implements ServiceContainerBase{
 
     @Override
     public AbstractService getService(String serviceName) {
@@ -73,9 +74,9 @@ public abstract class ServiceManager implements ServiceContainer{
      * 获取日志器。
      * @return 
      */
-    public static Logger getLogger(){
-        return getInstance().classLoader.getLogger();
-    }
+//    public static Logger getLogger(){
+//        return getInstance().classLoader.getLogger();
+//    }
 
     /**
      * 注册一个服务。

@@ -7,10 +7,10 @@
 package mano.web;
 
 import mano.ContextClassLoader;
+import mano.data.json.*;
 import mano.http.HttpContext;
 import mano.http.HttpPostFile;
-import mano.data.json.*;
-import mano.util.logging.Logger;
+import mano.util.logging.ILogger;
 
 /**
  * 封装了一组 action 与常用方法的控制器抽象类。
@@ -254,7 +254,7 @@ public abstract class Controller implements ActionHandler {
      *
      * @return
      */
-    public Logger getLogger() {
+    public ILogger getLogger() {
         return this.getApplication().getLogger();
     }
 

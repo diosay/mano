@@ -14,9 +14,9 @@ import java.util.Properties;
  *
  * @author junhwong
  */
-public abstract class AbstractService implements Service, Runnable {
+public abstract class AbstractService implements IService, Runnable {
 
-    private final ServiceContainer container;
+    private final ServiceContainerBase container;
     private final Properties properties;
 
     protected AbstractService() {
@@ -45,7 +45,7 @@ public abstract class AbstractService implements Service, Runnable {
         ServiceManager.getInstance().regisiter(this);
     }
 
-    public ServiceContainer getContainer() {
+    public ServiceContainerBase getContainer() {
         return container;
     }
 

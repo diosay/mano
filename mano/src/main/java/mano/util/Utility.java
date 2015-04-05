@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import mano.IProperties;
 import mano.Mano;
 
 /**
@@ -32,6 +33,23 @@ public class Utility {
 
     static final Pattern pattern = Pattern.compile("\\{\\s*([\\w\\-_\\.]+)\\s*\\}");
 
+    public static StringBuilder replaceMarkup(StringBuilder sb, String key, IProperties props) {
+        Matcher matcher = pattern.matcher(sb);
+        while (matcher.find()) {
+            String name = matcher.group(1);
+            if (name.equals(key)) {
+                throw new IllegalArgumentException("Predefined label cannot be self referencing:" + key + "/" + name);
+            } else if (!props.containsProperty(name, true)) {
+                throw new IllegalArgumentException("Predefined label is not defined:" + key + "/" + name);
+            }
+            sb.replace(matcher.start(), matcher.end(), props.getProperty(name, true));
+        }
+        return sb;
+    }
+
+    /**
+     * @deprecated @param props
+     */
     public static void prepareProperties(final Properties props) {
         if (props == null) {
             throw new IllegalArgumentException("props");
@@ -117,16 +135,22 @@ public class Utility {
 
     //http://blog.sina.com.cn/s/blog_7a35101201012n0b.html
     //http://blog.csdn.net/snakeqi/article/details/344069
+    private static final ArrayList<String> temp = new ArrayList<>();
+
     public static String[] split(String s, String spliter, boolean removeEmptyItem) {
         String[] arr = (s == null) ? new String[0] : s.split(spliter);
         if (removeEmptyItem) {
-            ArrayList<String> temp = new ArrayList<>();
-            for (int i = 0; i < arr.length; i++) {
-                if (!"".equals(arr[i].trim())) {
-                    temp.add(arr[i].trim());
+            synchronized (temp) {
+                temp.clear();
+                String item;
+                for (int i = 0; i < arr.length; i++) {
+                    item = arr[i].trim();
+                    if (!"".equals(item)) {
+                        temp.add(item);
+                    }
                 }
+                arr = temp.toArray(new String[temp.size()]);
             }
-            arr = temp.toArray(new String[0]);
         }
         return arr;
     }
@@ -287,6 +311,7 @@ public class Utility {
         }
         return Long.parseLong(obj.toString());
     }
+
     public static long toInt(Object obj) {
         if (obj == null) {
             throw new IllegalArgumentException("null is not a valid number.");
@@ -332,7 +357,6 @@ public class Utility {
         }
 
         //target.createNewFile();
-
         Files.copy(src.toPath(), target.toPath(), LinkOption.NOFOLLOW_LINKS);
 
 //        try (FileInputStream input = new FileInputStream(src)) {

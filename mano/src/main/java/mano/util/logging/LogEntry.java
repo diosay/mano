@@ -50,9 +50,9 @@ public class LogEntry {
     
     private DateTime time;
 
-    private transient boolean needToInferCaller;
+    //private transient boolean needToInferCaller;
     private transient Logger logger;
-    private StackTraceElement trace;
+    //private StackTraceElement trace;
 
     /**
      * Get the source Logger's name.
@@ -90,6 +90,7 @@ public class LogEntry {
         if (level == null) {
             throw new NullPointerException();
         }
+        IEntry e;
         this.level = level;
     }
 

@@ -6,6 +6,7 @@
  */
 package mano.util.xml;
 
+import java.io.File;
 import java.io.IOException;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
@@ -50,6 +51,15 @@ public class XmlHelper {
         try {
             init();
             return new XmlHelper(_builder.parse(filename));
+        } catch (ParserConfigurationException|SAXException|IOException ex) {
+            throw new XmlException(ex.getMessage(),ex);
+        }
+    }
+    
+    public static XmlHelper load(File file) throws XmlException {
+        try {
+            init();
+            return new XmlHelper(_builder.parse(file));
         } catch (ParserConfigurationException|SAXException|IOException ex) {
             throw new XmlException(ex.getMessage(),ex);
         }

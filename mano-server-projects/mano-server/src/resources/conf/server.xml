@@ -4,6 +4,7 @@
         <settings>
             <property name="server.dir">{user.dir}/..</property>
             <property name="logging.path">{server.dir}/logs</property>
+            <property name="mano.json.converter.class">com.diosay.tplib.FastJsonConverter</property>
         </settings>
         <!--<dependency>
             <path value="lib"/>
@@ -13,7 +14,7 @@
         </logger>
         <services>
             <service name="httpsession.service" class="mano.web.HttpSessionService"></service>
-            <service name="http.service" class="mano.web.runtime.HttpService">
+            <service name="http.service" class="mano.web.runtime.HttpService" disabled="false">
                 <property name="config_file">{server.dir}/conf/server.xml</property>
                 <property name="buffer_size">8k</property>
                 <property name="max_connections">1024</property>

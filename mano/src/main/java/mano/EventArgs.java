@@ -1,26 +1,22 @@
 /*
- * Copyright (C) 2014 The MANO Project. All rights reserved.
+ * Copyright (C) 2014-2015 The MANO Project. All rights reserved.
  * 
  * See more http://mano.diosay.com/
  * 
  */
-
 package mano;
 
 /**
  * 表示包含事件数据的类的基类。
- * @author junhwong
+ *
+ * @author sixmoon
  */
 public interface EventArgs {
+
     /**
-     * 提供要用于没有事件数据的事件的值。
+     * 提供一个空的事件参数。
      */
-    public static final EventArgs Empty=new EmptyEventArgs();
-    
-    /**
-     * 空参数。 
-     */
-    class EmptyEventArgs implements EventArgs{
-        
-    }
+    public static final EventArgs Empty = new EventArgs() {
+    };
+
 }
