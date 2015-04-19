@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <settings>
+        <property name="mano.dir">{user.dir}/..</property>
+        <property name="mano.json.converter.class">com.diosay.tplib.FastJsonConverter</property>
+        <property name="mano.logging.level.debug">true</property>
+        <property name="mano.logging.level.info">true</property>
+        <property name="mano.logging.level.warn">true</property>
+        <property name="mano.logging.level.error">true</property>
+        <property name="mano.logging.level.fatal">true</property>
+        <property name="mano.logging.level.trace">true</property>
+    </settings>
+    <dependency>
+        <path value="{mano.dir}/lib"/>
+    </dependency>
+    <logging>
+        <property name="enabled">true</property>
+        <property name="name">root</property>
+        <property name="handler">mano.util.logging.ConsoleHandler</property>
+        <property name="formatter">mano.util.logging.SimpleFormatter</property>
+        <property name="debug">true</property>
+        <property name="info">true</property>
+        <property name="warn">true</property>
+        <property name="error">true</property>
+        <property name="fatal">true</property>
+    </logging>
+</configuration>
