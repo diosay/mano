@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.diosay</groupId>
+    <artifactId>mano-supports</artifactId>
+    <version>1.4.0-BETA</version>
+    <packaging>jar</packaging>
+    <name>Mano :: Support Libs</name>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>com.diosay</groupId>
+            <artifactId>mano</artifactId>
+            <version>1.4.0-BETA</version>
+        </dependency>
+        <dependency>
+            <!--
+            包说明：
+            使用的阿里的开源JSON组件，版权与所有权请参考下面的链接：
+            https://github.com/alibaba/fastjson
+            -->
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.1.42</version>
+        </dependency>
+        
+    </dependencies>
+</project>
