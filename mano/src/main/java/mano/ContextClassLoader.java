@@ -9,6 +9,7 @@ package mano;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -16,6 +17,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import mano.util.logging.ILogger;
 
 /**
@@ -116,6 +119,8 @@ public class ContextClassLoader extends URLClassLoader implements IProperties {
                         } catch (Throwable ex) {
                             getLogger().warn("Invalid class path(URL ERROR 3)", ex);
                         }
+                    }else if(f.isDirectory()){
+                        register(f.toString());
                     }
                     return false;
                 });
@@ -126,6 +131,17 @@ public class ContextClassLoader extends URLClassLoader implements IProperties {
             set.iterator().forEachRemaining(url -> {
                 super.addURL(url);
             });
+        }
+    }
+    
+    public void registerFloder(String path) {
+        File file=new File(path);
+        if(file.exists() && file.isDirectory()){
+            try {
+                super.addURL(file.toURI().toURL());
+            } catch (MalformedURLException ex) {
+                getLogger().warn("Invalid class path(Not found or Not a directory) :" + path);
+            }
         }
     }
 

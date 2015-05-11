@@ -6,6 +6,8 @@
  */
 package mano.net.http;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 
 /**
@@ -13,6 +15,8 @@ import java.nio.charset.Charset;
  * @author jun <jun@diosay.com>
  */
 public interface HttpEntityBodyAppender {
+    
+    InputStream getEntityBodyStream() throws IOException;
     
     /**
      * 获取实体字符编码。

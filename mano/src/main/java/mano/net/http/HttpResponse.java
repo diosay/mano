@@ -41,8 +41,6 @@ public abstract class HttpResponse {
 
     /**
      * 获取返回给客户端的输出的 HTTP 状态代码。
-     *
-     * @return
      */
     public int status() {
         return this._status;
@@ -149,7 +147,7 @@ public abstract class HttpResponse {
      *
      * @param value
      * @throws UnsupportedCharsetException
-     * @throws ark.InvalidOperationException
+     * @throws InvalidOperationException
      */
     public void charset(String value) throws UnsupportedCharsetException, InvalidOperationException {
         HttpHeader header;

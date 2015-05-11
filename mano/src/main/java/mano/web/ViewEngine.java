@@ -8,7 +8,7 @@ package mano.web;
 
 import java.io.File;
 import mano.InvalidOperationException;
-import mano.http.HttpContext;
+import mano.net.http.HttpContext;
 
 /**
  * 定义一个渲染WEB视图的引擎抽象类。

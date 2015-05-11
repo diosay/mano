@@ -8,6 +8,7 @@ package mano.io;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import mano.EventArgs;
 import mano.EventHandler;
@@ -42,43 +43,46 @@ public class ChannelListenerContext {
         this.executor = executor;
         this.bufferPool = new ByteBufferPool(4096);
         listenerClosedEventHandle = EventListener.create();
-        bufferManager=new BufferManager();
+        //bufferManager=new BufferManager();
     }
 
-    public Pool<ChannelTaskInternal> getTaskPool() {
-        return taskPool;
+//    public Pool<ChannelTaskInternal> getTaskPool() {
+//        return taskPool;
+//    }
+//
+//    public ChannelTask wrapWriteTask(ByteBuffer buffer) {
+//        ChannelTaskInternal task = taskPool.get();
+//        task.set(ChannelTaskInternal.OP_WRITE, buffer);
+//        return task;
+//    }
+//
+//    public ChannelTask wrapReadTask(ByteBuffer buffer) {
+//        ChannelTaskInternal task = taskPool.get();
+//        task.set(ChannelTaskInternal.OP_READ, buffer);
+//        return task;
+//    }
+//
+//    public boolean putTask(ChannelTask task) {
+//        if (task == null || !(task instanceof ChannelTaskInternal)) {
+//            return false;
+//        }
+//        return taskPool.put((ChannelTaskInternal) task);
+//    }
+
+    public ByteBufferPool getBufferPool() {
+        return bufferPool;
     }
 
-    public ChannelTask wrapWriteTask(ByteBuffer buffer) {
-        ChannelTaskInternal task = taskPool.get();
-        task.set(ChannelTaskInternal.OP_WRITE, buffer);
-        return task;
-    }
-
-    public ChannelTask wrapReadTask(ByteBuffer buffer) {
-        ChannelTaskInternal task = taskPool.get();
-        task.set(ChannelTaskInternal.OP_READ, buffer);
-        return task;
-    }
-
-    public boolean putTask(ChannelTask task) {
-        if (task == null || !(task instanceof ChannelTaskInternal)) {
-            return false;
+    public void setBufferPool(ByteBufferPool pool) {
+        if(pool==null){
+            throw new java.lang.NullPointerException("pool");
         }
-        return taskPool.put((ChannelTaskInternal) task);
-    }
-
-    public ByteBuffer getByteBuffer() {
-        return bufferPool.get();
-    }
-
-    public boolean putByteBuffer(ByteBuffer buffer) {
-        return bufferPool.put(buffer);
+        bufferPool=pool;
     }
     
-    public BufferManager getBufferManager(){
-        return this.bufferManager;
-    }
+//    public BufferManager getBufferManager(){
+//        return this.bufferManager;
+//    }
 
     public ExecutorService getExecutor() {
         return this.executor;
@@ -97,13 +101,14 @@ public class ChannelListenerContext {
         }
     };
 
-    public void addListener(ChannelListener listener) {
+    public ChannelListener addListener(ChannelListener listener) {
         synchronized (listeners) {
             if (!listeners.contains(listener)) {
                 listener.closedEvent().add(listenerClosedHandler);
                 listeners.add(listener);
             }
         }
+        return listener;
     }
     
     public int size(){
@@ -112,6 +117,12 @@ public class ChannelListenerContext {
     
     public Iterator<ChannelListener> getListeners(){
         return listeners.iterator();
+    }
+    
+    final java.util.HashMap<String,Object> items=new java.util.HashMap<>();
+    
+    public Map<String,Object> items(){
+        return this.items;
     }
 
 }

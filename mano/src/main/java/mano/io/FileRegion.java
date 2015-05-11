@@ -7,26 +7,42 @@
 
 package mano.io;
 
-import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.WritableByteChannel;
 
 /**
+ * @deprecated 移除
  * 表示一个文件区域。
  * @author johnwhang
  */
-public interface FileRegion {
+public class FileRegion {
+    
+    private long offset;
+    private long length;
+    private String filename;
+    
+    public FileRegion(String filename,long offset,long length){
+        this.filename=filename;
+        this.offset=offset;
+        this.length=length;
+    }
+    
     /**
      * 获取文件的起始偏移位置。
      */
-    long getOffset();
+    public long getOffset(){
+        return this.offset;
+    }
     /**
      * 获取要传输的长度。
      */
-    long getLength();
+    public long getLength(){
+        return this.length;
+    }
     /**
      * 获取文件的绝对文路径。
      */
-    String getFilename();
+    public String getFilename(){
+        return this.filename;
+    }
     //ReadableByteChannel getReadableChannel();
     //WritableByteChannel getWritableChannel();
 }

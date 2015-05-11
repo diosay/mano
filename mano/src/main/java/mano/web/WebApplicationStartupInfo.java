@@ -13,11 +13,15 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import mano.ContextClassLoader;
-import mano.http.HttpModuleSettings;
-import mano.http.HttpServer;
+import mano.net.http.HttpModuleSettings;
+import mano.net.http.HttpServer;
+import mano.service.Service;
 import mano.service.ServiceProvider;
 import mano.util.NameValueCollection;
 import mano.util.Utility;
@@ -29,7 +33,7 @@ import mano.util.logging.Logger;
  */
 public class WebApplicationStartupInfo {
 
-    public IService service;
+    public Service service;
     public ContextClassLoader serviceLoader;
     public NameValueCollection<HttpModuleSettings> modules = new NameValueCollection<>();
     public String name;
@@ -51,12 +55,27 @@ public class WebApplicationStartupInfo {
     public boolean disabledEntityBody;
     public long maxEntityBodySize;
     public long maxPostFileSize;
-    public String controller;
-    public String action;
+    public String controller="home";
+    public String action="index";
+    
+    //public final List<String> documents = new ArrayList<>();
+    //public final List<String> ignoredSegments = new ArrayList<>();
+    public final Map<String, String> errorPages = new HashMap<>();
+    //public final List<String> dependency = new ArrayList<>();
+    //public final Map<String, mano.net.http.HttpModuleSettings> modules = new java.util.LinkedHashMap<>();
+    //public String controller;
+    //public String action;
+    //public boolean disabledEntityBody;
+    //public long maxEntityBodySize;
+    public String errorMode="off";
+    public String errorDefaultPage="";
 
     public boolean matchHost(String hostname) {
         if (hostreg == null) {
             hostreg = Pattern.compile("^" + host.replace("*", "[\\w\\-_\\.]+") + "$");
+        }
+        if("*".equals(host)){
+            return true;
         }
         return hostreg.matcher(hostname).matches();
     }
@@ -75,7 +94,7 @@ public class WebApplicationStartupInfo {
         try {
             ArrayList<String> files = new ArrayList<>();
             files.add(getServerInstance().mapPath("WEB-INF/lib"));
-            files.add(getServerInstance().mapPath("WEB-INF/classes"));
+            
             for (String file : dependencyExt) {
 
                 if (file == null || "".equals(file)) {
@@ -101,10 +120,15 @@ public class WebApplicationStartupInfo {
                     files.add(file);
                 }
             }
-
-            ContextClassLoader loader = new ContextClassLoader(serviceLoader.getLogger(), new URL[0], serviceLoader);
-
+            
+            //TODO:应用日志
+            //, new URL[0], service.getContext()
+            ContextClassLoader loader = new ContextClassLoader(service.getContext());
+            
             loader.register(files.toArray(new String[0]));
+            
+            loader.registerFloder(getServerInstance().mapPath("WEB-INF/classes"));
+            
             this.exports.entrySet().iterator().forEachRemaining(item -> {
                 try {
                     loader.registerExport(item.getKey(), item.getValue());
@@ -112,6 +136,8 @@ public class WebApplicationStartupInfo {
                     loader.getLogger().warn(null, ex);
                 }
             });
+            
+            
             app = (WebApplication) loader.newInstance(this.type);
             if (app != null) {
                 Method init = WebApplication.class.getDeclaredMethod("init", WebApplicationStartupInfo.class, ContextClassLoader.class);
@@ -130,14 +156,14 @@ public class WebApplicationStartupInfo {
     public synchronized HttpServer getServerInstance() {
         if (server == null && service != null) {
 
-            String _basedir = this.rootdir;
+            String _basedir = this.rootdir;//应用程序路径，可以是相对于服务器程序根的相对路径
 
             if (_basedir.startsWith("~/") || _basedir.startsWith("~\\")) {
-                _basedir = Utility.toPath(this.serverPath, _basedir.substring(1)).toString();
+                _basedir = Utility.toPath(this.serverPath, _basedir.substring(1)).toString();//转换成绝对路径
             }
 
             final String realbasedir = _basedir;
-            final String virtualPath = this.path;
+            final String virtualPath = this.path;//
             server = new HttpServer() {
 
                 @Override

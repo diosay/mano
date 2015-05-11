@@ -20,11 +20,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import mano.ContextClassLoader;
 import mano.Mano;
 import mano.PropertyContext;
-import mano.http.HttpContext;
-import mano.http.HttpException;
-import mano.http.HttpModule;
-import mano.http.HttpServer;
-import mano.http.HttpStatus;
+import mano.net.http.HttpContext;
+import mano.net.http.HttpException;
+import mano.net.http.HttpModule;
+import mano.net.http.HttpModuleSettings;
+import mano.net.http.HttpServer;
+import mano.net.http.HttpStatus;
 import mano.util.Utility;
 import mano.util.logging.ILogger;
 import mano.util.logging.Logger;
@@ -61,7 +62,7 @@ public class WebApplication extends PropertyContext {
         this.setProperties(info.settings);
         this.onInit();
         modules = new LinkedHashSet<>();
-        for (mano.http.HttpModuleSettings settings : info.modules.values()) {
+        for (HttpModuleSettings settings : info.modules.values()) {
             try {
                 HttpModule mod = (HttpModule) loader.newInstance(settings.type);
                 if (mod != null) {
@@ -166,7 +167,9 @@ public class WebApplication extends PropertyContext {
             this.onError(context, ex);
         }
         if (!processed) {
-            this.onError(context, new HttpException(HttpStatus.NotFound, "404 Not Found"));
+            //context.getSession().get("");
+            //throw new java.lang.RuntimeException(new HttpException(HttpStatus.NotFound, new java.lang.IllegalMonitorStateException("404 Not Found")));
+            this.onError(context, new HttpException(HttpStatus.NotFound, new java.lang.RuntimeException(new HttpException(HttpStatus.NotFound, new java.lang.IllegalMonitorStateException("404 Not Found")))));
         }
 
         if (!context.isCompleted()) {
@@ -175,6 +178,36 @@ public class WebApplication extends PropertyContext {
     }
 
     protected void onInit() {
+    }
+
+    protected void onError(HttpContext context, Throwable t) {
+        HttpException err;
+        if (t instanceof HttpException) {
+            err = (HttpException) t;
+        } else {
+            err = new HttpException(HttpStatus.InternalServerError, t);
+        }
+
+        ErrorPageGrec gen = new ErrorPageGrec();
+        gen.status = err.getHttpStatus();
+        if (gen.genError && gen.status == HttpStatus.InternalServerError) {
+            gen.message = err.getCause() != null ? err.getCause().getMessage() : err.getMessage();
+            if (gen.message == null || "".equals(gen.message)) {
+                gen.message = err.getMessage();
+            }
+        } else {
+            gen.genError = false;
+            gen.message = "该页面遇到某些问题，不能正常访问，请检查输入项确保请求地址或其它是合法的并重试。<br>如需了解更多细节请联系管理员。";
+        }
+        try {
+            context.getResponse().setHeader("Connection", "close");
+            context.getResponse().status(gen.status.getStatus());
+        } catch (Exception e) {
+            //ignored
+        }
+
+        context.getResponse().write(gen.gen(err.getCause()));
+        context.getResponse().end();
     }
 
     private void printRoot(StringBuilder sb, Throwable t) {
@@ -192,7 +225,7 @@ public class WebApplication extends PropertyContext {
         printRoot(sb, t.getCause());
     }
 
-    protected void onError(HttpContext context, Throwable t) {
+    protected void onError2(HttpContext context, Throwable t) {
         StringBuilder sb = new StringBuilder();
         if (t instanceof HttpException) {
             HttpException ex = (HttpException) t;
@@ -332,6 +365,61 @@ public class WebApplication extends PropertyContext {
         } catch (Throwable ex) {
             ex.printStackTrace(System.err);
         }
+    }
+
+    class ErrorPageGrec {
+
+        //public String title;
+        public String message;
+        //public String caption;
+        public boolean genError = true;
+        public mano.net.http.HttpStatus status = mano.net.http.HttpStatus.InternalServerError;
+
+        private void genCause(StringBuilder sb, Throwable ex) {
+            if (ex == null) {
+                return;
+            }
+            sb.append("<b>Caused by：</b><pre>");
+            StringWriter sw = new StringWriter();
+            try (PrintWriter pw = new PrintWriter(sw)) {
+                pw.println();
+                ex.printStackTrace(pw);
+            }
+            sb.append(sw.toString());
+            sb.append("</pre>");
+            genCause(sb, ex.getCause());
+        }
+
+        public StringBuilder gen(Throwable ex) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("<!DOCTYPE html><html><head>");
+            sb.append("<title>HTTP ").append(status.getStatus()).append(" ERROR</title>");
+            sb.append("<style type=\"text/css\">h3{background: #525E76;color: #fff;margin: 0;padding: 5px;}div{min-height:50px; font-size: 12px; line-height: 24px;}pre{background: #FFFFCB;padding: 5px; margin: 0;font-size: 12px;}</style>");
+            sb.append("</head><body>");
+            sb.append("<h3>HTTP Status ").append(status.getStatus()).append(" - ").append(status.getDescription()).append("</h3>");
+            sb.append("<hr/>");
+
+            sb.append("<div>").append(message).append("</div>");
+
+            if (genError && ex != null) {
+                sb.append("<b>Exception：</b>");
+                sb.append("<pre>");
+                StringWriter sw = new StringWriter();
+                try (PrintWriter pw = new PrintWriter(sw)) {
+                    pw.println();
+                    ex.printStackTrace(pw);
+                }
+                sb.append(sw.toString());
+                sb.append("</pre>");
+                genCause(sb, ex.getCause());
+            }
+
+            sb.append("<hr>");
+            sb.append("<h3 style=\"font-size: 12px;\">DIOSAY MANO(HTTP Server)/0.4beta</h3>");
+            sb.append("</body></html>");
+            return sb;
+        }
+
     }
 
 }

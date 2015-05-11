@@ -6,6 +6,8 @@
  */
 package mano.net.http;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
@@ -28,30 +30,6 @@ public abstract class HttpRequest {
 
     private URL url;
     private Map<String, String> query;
-
-    /**
-     * 获取当前 HTTP 请求的方法。
-     *
-     * @return
-     */
-    @java.lang.Deprecated
-    public abstract String method();
-
-    /**
-     * 获取请求的 HTTP 版本（如“HTTP/1.1”）。
-     *
-     * @return
-     */
-    @java.lang.Deprecated
-    public abstract String version();
-
-    /**
-     * 获取请求的 HTTP 协议（HTTP 或 HTTPS）。
-     *
-     * @return
-     */
-    @java.lang.Deprecated
-    public abstract String protocol();
 
     /**
      * 获取请求的 HTTP 协议版本。
@@ -92,7 +70,7 @@ public abstract class HttpRequest {
             if (this.rawUrl().startsWith("/")) {
                 path = this.isSecure() ? "https://" : "http://";
                 path += this.headers().get("host").value();
-                path += this.rawUrl();
+                path += this.rawUrl();//TODO:解码
             } else {
                 path = this.rawUrl();
             }
@@ -189,14 +167,6 @@ public abstract class HttpRequest {
     public abstract boolean canLoadEntityBody();
 
     /**
-     * 使用自定义处理程序载入并处理 HTTP 请求实体正文。
-     *
-     * @param decoder 解码程序。
-     * @throws InvalidOperationException
-     */
-    public abstract void loadEntityBody(HttpEntityBodyDecoder decoder) throws Exception;
-
-    /**
      * 使用默认处理程序载入并处理 HTTP 请求实体正文。
      *
      * @throws InvalidOperationException
@@ -207,4 +177,7 @@ public abstract class HttpRequest {
      * 强制终止基础 TCP 连接，这会导致任何显著的 I/O 失败。
      */
     public abstract void Abort();
+    
+    public abstract InputStream getEntityBodyStream() throws IOException;
+    
 }

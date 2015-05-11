@@ -371,7 +371,7 @@ public class DateTime {
     }
 
     public static long nowTime() {
-        return Instant.now().toEpochMilli();
+        return System.currentTimeMillis();//Instant.now().toEpochMilli();
     }
 
     public static DateTime now() {
@@ -384,7 +384,7 @@ public class DateTime {
     }
 
     public static long localNowTime() {
-        return Instant.now().toEpochMilli() + TimeZone.getDefault().getRawOffset();
+        return nowTime() + TimeZone.getDefault().getRawOffset();
     }
 
     public static String format(String pattern, DateTime time) {

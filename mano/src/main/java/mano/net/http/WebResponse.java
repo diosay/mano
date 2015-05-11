@@ -8,7 +8,7 @@
 package mano.net.http;
 
 /**
- *
+ * @deprecated 移除
  * @author johnwhang
  */
 public class WebResponse {

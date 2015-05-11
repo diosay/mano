@@ -10,7 +10,7 @@ import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import mano.http.HttpContext;
+import mano.net.http.HttpContext;
 import mano.util.NameValueCollection;
 
 /**

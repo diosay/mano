@@ -6,6 +6,7 @@
  */
 package mano.io;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import mano.EventArgs;
 import mano.EventHandler;
@@ -19,7 +20,90 @@ import mano.util.Pool;
  */
 public abstract class ChannelListenerAbstract implements ChannelListener {
 
-    protected class BasicChannelHandlerChain implements ChannelHandlerChain {
+    private ChannelListenerContext context;
+
+    protected EventListener.EventListenerHandle<ChannelListener, EventArgs> closedEventHandle = EventListener.create();
+    protected boolean closed;
+    protected boolean running;
+
+    @Override
+    public void setContext(ChannelListenerContext context) {
+        if (context == null) {
+            throw new IllegalArgumentException("context");
+        }
+        this.context = context;
+    }
+
+    public ChannelListenerContext getContext() {
+        return context;
+    }
+
+    @Override
+    public EventListener<EventHandler<ChannelListener, EventArgs>> closedEvent() {
+        return closedEventHandle.getListener();
+    }
+
+    @Override
+    public boolean isOpen() {
+        return !closed;
+    }
+
+    @Override
+    public void close() {
+        if (!closed) {
+            closed = true;
+            onStop();
+            closedEventHandle.fire(this, EventArgs.Empty);
+            handlerChainPool.destory();
+        }
+    }
+
+    @Override
+    public abstract void bind(String address, int backlog) throws IOException ;
+
+    @Override
+    public final void run() {
+        if (running || closed) {
+            return;
+        }
+        running = true;
+        try {
+            onStart();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    protected abstract void onStart() throws Exception;
+
+    protected abstract void onStop();
+
+    
+    
+    
+    private static final String err = "No more ChannelFilter.";
+    private ChannelHandler[] handlers = new ChannelHandler[0];
+    private final Pool<ChannelHandlerChain> handlerChainPool = new CachedObjectRecyler<ChannelHandlerChain>() {
+
+        @Override
+        protected ChannelHandlerChain createNew() {
+            return new BasicChannelFilterChain();
+        }
+    };
+    
+    @Override
+    public final void addHandler(ChannelHandler handler) {
+        ChannelHandler[] tmp = new ChannelHandler[handlers.length + 1];
+        System.arraycopy(handlers, 0, tmp, 0, handlers.length);
+        tmp[handlers.length] = handler;
+        handlers = tmp;
+    }
+    
+    public ChannelHandlerChain getHandlerChain(){
+        return handlerChainPool.get();
+    }
+    
+    protected class BasicChannelFilterChain implements ChannelHandlerChain {
 
         private transient volatile int pos = 0;
 
@@ -32,18 +116,18 @@ public abstract class ChannelListenerAbstract implements ChannelListener {
         }
 
         @Override
-        public void handleConnected(ChannelContext context) {
+        public void handleOpened(ChannelContext context) {
             if (hasNext()) {
-                next().handleConnected(context, hasNext() ? this : null);
+                next().handleOpened(context, hasNext() ? this : null);
             } else {
                 throw new IndexOutOfBoundsException(err);
             }
         }
 
         @Override
-        public void handleDisconnect(ChannelContext context) {
+        public void handleClosed(ChannelContext context) {
             if (hasNext()) {
-                next().handleDisconnected(context, hasNext() ? this : null);
+                next().handleClosed(context, hasNext() ? this : null);
             } else {
                 throw new IndexOutOfBoundsException(err);
             }
@@ -68,120 +152,18 @@ public abstract class ChannelListenerAbstract implements ChannelListener {
         }
 
         @Override
-        public void handleError(ChannelContext context, Throwable cause) {
-            if (hasNext()) {
-                next().handleError(context, hasNext() ? this : null, cause);
-            } else {
-                throw new IndexOutOfBoundsException(err);
-            }
-        }
-
-        @Override
         public final void close() {
-            putHandlerChain(this);
+            pos=0;
+            handlerChainPool.put(this);
         }
 
         @Override
         public ChannelHandlerChain duplicate() {
-            BasicChannelHandlerChain chain = (BasicChannelHandlerChain) getHandlerChain();
+            BasicChannelFilterChain chain = (BasicChannelFilterChain) handlerChainPool.get();
             chain.pos = pos;
             return chain;
         }
     }
-
-    private ChannelListenerContext context;
-    private static final String err = "No more ChannelHandlerChain.";
-    private ChannelHandler[] handlers = new ChannelHandler[0];
-    private final Pool<ChannelHandlerChain> handlerChainPool = new CachedObjectRecyler<ChannelHandlerChain>() {
-
-        @Override
-        protected ChannelHandlerChain createNew() {
-            return createNewHandlerChain();
-        }
-    };
-    protected EventListener.EventListenerHandle<ChannelListener, EventArgs> closedEventHandle;
-    protected boolean closed;
-    protected boolean running;
-    public ChannelListenerAbstract() {
-        closedEventHandle = EventListener.create();
-    }
-    
-    @Override
-    public void setContext(ChannelListenerContext context){
-        if(context==null){
-            throw new IllegalArgumentException("context");
-        }
-        this.context=context;
-    }
-    
-    public ChannelListenerContext getContext(){
-        return context;
-    }
-
-    @Override
-    public EventListener<EventHandler<ChannelListener, EventArgs>> closedEvent() {
-        return closedEventHandle.getListener();
-    }
-
-    @Override
-    public boolean isOpen() {
-        return !closed;
-    }
-
-    @Override
-    public void close() {
-        if (!closed) {
-            closed = true;
-            onStop();
-            handlerChainPool.destory();
-            closedEventHandle.fire(this, EventArgs.Empty);
-        }
-    }
-
-    @Override
-    public abstract void bind(String address, int backlog);
-
-    @Override
-    public final void addHandler(ChannelHandler handler) {
-        ChannelHandler[] tmp = new ChannelHandler[handlers.length + 1];
-        System.arraycopy(handlers, 0, tmp, 0, handlers.length);
-        tmp[handlers.length] = handler;
-        handlers = tmp;
-    }
-
-    @Override
-    public final void run() {
-        if(running || closed){
-            return;
-        }
-        running=true;
-        try {
-            onStart();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-    }
-    
-    protected abstract void onStart() throws Exception;
-    protected abstract void onStop();
-
-    protected BasicChannelHandlerChain createNewHandlerChain() {
-        return new BasicChannelHandlerChain();
-    }
-
-    public final ChannelHandlerChain getHandlerChain() {
-        ChannelHandlerChain chain = handlerChainPool.get();
-        ((BasicChannelHandlerChain) chain).pos = 0;
-        return chain;
-    }
-
-    public final boolean putHandlerChain(ChannelHandlerChain chain) {
-        if (chain != null && chain instanceof BasicChannelHandlerChain) {
-            return handlerChainPool.put(chain);
-        }
-        return false;
-    }
     
     
-
 }

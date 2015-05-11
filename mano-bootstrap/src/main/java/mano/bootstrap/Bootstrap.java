@@ -98,7 +98,7 @@ public final class Bootstrap {
                         iter = services.iterator();
                     }
                 }
-                System.out.println("service size:" + services.size());
+                //System.out.println("service size:" + services.size());
                 //启动未运行的服务
                 iter = services.iterator();
                 while (iter.hasNext()) {

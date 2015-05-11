@@ -10,10 +10,9 @@ package mano.net.http;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
-import mano.http.HttpMethod;
 
 /**
- *
+ * @deprecated 移除
  * @author johnwhang
  */
 public class WebRequest {

@@ -7,11 +7,12 @@
 package mano.io;
 
 import java.nio.ByteBuffer;
-import mano.io.ChannelContext;
+import mano.io.ChannelContextOld;
 import mano.io.ChannelException;
 import mano.io.ChannelTask;
 
 /**
+ * @deprecated 移除
  * 用于I/O的任务。
  * @author sixmoon
  */
@@ -50,20 +51,20 @@ final class ChannelTaskInternal implements ChannelTask {
     }
 
     @Override
-    public void execute(ChannelContext context) {
-        if (OP_WRITE.equals(op)) {
-            try {
-                context.channel().queueWriteBuffer(buffer);
-            } catch (ChannelException ex) {
-                ex.printStackTrace();
-            }
-        } else if (OP_READ.equals(op)) {
-            try {
-                context.channel().queueReadBuffer(buffer);
-            } catch (ChannelException ex) {
-                ex.printStackTrace();
-            }
-        }
+    public void execute(ChannelContextOld context) {
+//        if (OP_WRITE.equals(op)) {
+//            try {
+//                context.channel().queueWriteBuffer(buffer);
+//            } catch (ChannelException ex) {
+//                ex.printStackTrace();
+//            }
+//        } else if (OP_READ.equals(op)) {
+//            try {
+//                context.channel().queueReadBuffer(buffer);
+//            } catch (ChannelException ex) {
+//                ex.printStackTrace();
+//            }
+//        }
     }
 
 }

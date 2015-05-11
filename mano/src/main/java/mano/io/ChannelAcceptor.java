@@ -7,7 +7,7 @@
 package mano.io;
 
 /**
- *
+ * @deprecated 移除
  * @author sixmoon
  */
 public interface ChannelAcceptor extends Runnable, java.nio.channels.Channel {

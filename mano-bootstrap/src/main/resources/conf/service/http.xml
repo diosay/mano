@@ -2,9 +2,10 @@
 <service>
     <settings>
         <property name="service.name">MANO HTTP Service</property>
-        <property name="service.class">mano.bootstrap.DemoService</property>
+        <property name="service.class">mano.service.http.HttpService</property>
         <property name="service.disabled">false</property>
-        <property name="config.dir">{mano.dir}/conf/webapp</property>
+        <property name="app.config.dir">{mano.dir}/webapps</property>
+        <property name="app.deploy.dir">{mano.dir}/webapps/caches</property>
         <property name="worker.buffer_size">8k</property>
         <property name="worker.max_connections">1024</property>
     </settings>
@@ -20,10 +21,18 @@
                 <add value="/WEB-INF"/>
                 <add value="/views"/>
             </ignored>
+            <!--on|off|remoteOnly-->
+            <errors mode="off" defaultPath="generic_error.htm">
+                <error code="404" path="404.htm"/>
+            </errors>
         </request>
+        
+        <dependency>
+            <path value="E:\repositories\java\mano\mano\target\mano-1.4.0-BETA.jar"/>
+        </dependency>
             
         <modules>
-            <add name="static_file_module" class="mano.web.modules.StaticFileModule">
+            <add name="static_file_module" class="mano.service.http.StaticFileModule">
                 <!--http://www.w3school.com.cn/media/media_mimeref.asp-->
                 <property name="ext:htm">text/html</property>
                 <property name="ext:html">text/html</property>
@@ -65,13 +74,13 @@
                 <property name="ext:rar">application/octet-stream</property>
             </add>
                 
-            <add name="url_routing_module" class="mano.web.modules.UrlRoutingModule">
+            <add name="url_routing_module" class="mano.service.http.UrlRoutingModule">
                 <property name="def.mime">text/html</property>
                 <property name="def.encoding">utf-8</property>
                 <property name="inf.dir">{app.dir}/WEB-INF</property>
                 <property name="tmp.dir">{inf.dir}/tmp</property>
                 <property name="view.dir">{app.dir}/views</property>
-                <property name="view.engine">mano.web.OtplViewEngine</property>
+                <property name="view.engine">mano.service.http.OtplViewEngine</property>
             </add>
         </modules>
     </default>
@@ -84,4 +93,11 @@
             <property name="protected">SSLV1</property>
         </connection>-->
     </connections>
+    <listeners>
+        <listener address="tcp.ipv6://localhost:80" class="mano.service.http.HttpListener">
+            <handler class="mano.service.http.HttpHandler">
+                <property name="key">value</property>
+            </handler>
+        </listener>
+    </listeners>
 </service>

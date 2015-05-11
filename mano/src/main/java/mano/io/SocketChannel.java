@@ -8,7 +8,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.util.Iterator;
 
 /**
- *
+ * @deprecated 移除
  * @author jun
  */
 

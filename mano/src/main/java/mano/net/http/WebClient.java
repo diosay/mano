@@ -12,6 +12,7 @@ import java.nio.charset.Charset;
 import java.util.Map;
 
 /**
+ * @deprecated 移除
  * 提供用于将数据发送到由 URI 标识的资源及从这样的资源接收数据的常用方法。
  * @author johnwhang
  */

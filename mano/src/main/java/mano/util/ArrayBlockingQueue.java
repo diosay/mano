@@ -39,9 +39,7 @@ public class ArrayBlockingQueue<E> extends ArrayList<E> implements Queue<E> {
             if (this.isEmpty()) {
                 return null;
             }
-            E elemn = this.get(0);
-            this.remove(0);
-            return elemn;
+            return this.remove(0);
         } finally {
             lock.unlock();
         }

@@ -20,8 +20,16 @@ public class HttpRequestConfig {
     public final List<String> documents = new ArrayList<>();
     public final List<String> ignoredSegments = new ArrayList<>();
     public final Map<String, String> errorPages = new HashMap<>();
-    
+    public final List<String> dependency = new ArrayList<>();
+    public final Map<String, mano.net.http.HttpModuleSettings> modules = new java.util.LinkedHashMap<>();
     public String controller;
     public String action;
+    public boolean disabledEntityBody;
+    public long maxEntityBodySize;
+    public String errorMode="off";
+    public String errorDefaultPage="";
+    
+    
+    
     
 }

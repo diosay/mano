@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import mano.util.ThreadPool;
 
 /**
- *
+ * @deprecated 移除
  * @author sixmoon
  */
 public class BufferManager {

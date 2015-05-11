@@ -6,6 +6,8 @@
         <property name="application.vpath">/</property>
         <property name="application.class">mano.web.WebAppcation</property>
         <property name="application.logger.category">{application.name}</property>
+        <property name="application.public.data.path">{mano.dir}/AppData/{application.name}/public</property>
+        <property name="application.private.data.path">{mano.dir}/AppData/{application.name}/private</property>
     </settings>
     
 </application>

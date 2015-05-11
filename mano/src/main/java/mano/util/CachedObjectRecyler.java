@@ -16,11 +16,14 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author sixmoon
  */
 public abstract class CachedObjectRecyler<T> implements Pool<T> {
+
     private final ReentrantLock lock = new ReentrantLock();
     private final ArrayList<T> elements = new ArrayList<>();
     private final Runnable runner;
     private boolean closed;
-    
+    private long last;
+    private int timeout = 5000;
+
     public CachedObjectRecyler() {
         this.runner = () -> {
             lock.lock();
@@ -30,6 +33,19 @@ public abstract class CachedObjectRecyler<T> implements Pool<T> {
                 lock.unlock();
             }
         };
+        mano.util.ScheduleTask.register(current -> {
+
+            if (current - last >= timeout) {
+                last = current;
+                lock.lock();
+                try {
+                    onRecyle(elements);
+                } finally {
+                    lock.unlock();
+                }
+            }
+            return closed;
+        });
         ThreadPool.addScheduledTask(runner);
     }
 

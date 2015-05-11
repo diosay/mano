@@ -6,19 +6,22 @@
  */
 package mano.service.http;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import mano.io.BufferUtil;
 import mano.io.ChannelContext;
 import mano.io.ChannelException;
 import mano.io.ChannelHandler;
 import mano.io.ChannelHandlerChain;
+import mano.net.http.HttpMethod;
+import mano.net.http.HttpVersion;
+import mano.service.http.HttpListener.HttpContextImpl;
 
 /**
  *
  * @author sixmoon
  */
 public class HttpHandler implements ChannelHandler {
-
-    private static final String CONTEXT_KEY = "--HTTP_CONTEXT--";
 
     @Override
     public void setProperty(String property, Object value) {
@@ -33,59 +36,107 @@ public class HttpHandler implements ChannelHandler {
     }
 
     @Override
-    public void handleConnected(ChannelContext context, ChannelHandlerChain chain) {
-        HttpContextImpl ctx = new HttpContextImpl();
-        ctx.setChannel(context.channel());
-        context.set(CONTEXT_KEY, ctx);
+    public void handleOpened(ChannelContext context, ChannelHandlerChain chain) {
         try {
             context.channel().read();
         } catch (ChannelException ex) {
-            try (ChannelHandlerChain chc = chain.duplicate()) {
-                chc.handleError(context, ex);
-            }
+            context.handleError(ex);
         }
     }
 
     @Override
-    public void handleDisconnected(ChannelContext context, ChannelHandlerChain chain) {
-        context.set(CONTEXT_KEY, null);
-
+    public void handleClosed(ChannelContext context, ChannelHandlerChain chain) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
     public void handleInbound(ChannelContext context, ChannelHandlerChain chain, ByteBuffer buffer) {
-        if (!buffer.hasRemaining()) {
-            context.free(buffer);
-            return;
+        HttpContextImpl ctx = (HttpContextImpl) context;
+        if(ctx==null){
+            //TODO
         }
-        HttpContextImpl ctx = (HttpContextImpl) context.get(CONTEXT_KEY);
-        if (ctx == null) {
-            //throw err
-            context.free(buffer);
-            context.channel().close();
-            return;
-        }
-        try {
-            ctx.onRead(buffer, context.getBufferManager());
-        } catch (ChannelException ex) {
-            try (ChannelHandlerChain chc = chain.duplicate()) {
-                chc.handleError(context, ex);
+        if (ctx.step == HttpContextImpl.STEP_REQUEST_LINE || ctx.step == HttpContextImpl.STEP_HEADERS) {
+
+            byte[] array;
+            int offset;
+            int length;
+            if (buffer.hasArray()) {
+                array = buffer.array();
+                offset = buffer.arrayOffset() + buffer.position();
+                length = buffer.remaining();
+            } else {
+                length = buffer.remaining();
+                offset = 0;
+                array = new byte[length];
+                buffer.get(array);
+                buffer.position(buffer.position() - length);
             }
+
+            int index;
+            int len;
+            String line;
+            do {
+                index = mano.io.BufferUtil.bytesIndexOf(array, offset, length, BufferUtil.CRLF);
+                if (index >= 0) {
+                    len = index - offset;
+                    line = new String(array, offset, len);
+                    len+=BufferUtil.CRLF.length;
+                    buffer.position(buffer.position() + len);
+                    length-=len;
+                    offset+=len;
+                    if (ctx.step == HttpContextImpl.STEP_REQUEST_LINE) {
+                        String[] arr = line.split(" ");
+                        ctx.request.method= HttpMethod.parse(arr[0]);
+                        ctx.request.rawUrl=arr[1];
+                        ctx.request.version = HttpVersion.valueOf(arr[2]);
+                        ctx.step = HttpContextImpl.STEP_HEADERS;
+                    } else if (ctx.step == HttpContextImpl.STEP_HEADERS && "".equals(line)) {
+                        ctx.step = HttpContextImpl.STEP_PROC;
+                        if (buffer.hasRemaining()) {
+                            ctx.keepBuffer = buffer;
+                        } else {
+                            context.freeBuffer(buffer);
+                        }
+                        ctx.handleRequest();
+                        break;
+                    } else {
+                        ctx.request.headers.put(mano.net.http.HttpHeader.prase(line));
+                    }
+                } else {
+                    try {
+                        if (buffer.hasRemaining()) {
+                            buffer.compact();
+                            if (!buffer.hasRemaining()) {
+                                context.handleError(new java.lang.IndexOutOfBoundsException("超出緩衝區"));
+                                return;
+                            }
+                        } else {
+                            buffer.clear();
+                        }
+                        context.channel().read(buffer);
+                    } catch (ChannelException ex) {
+                        context.handleError(ex);
+                    }
+                    break;
+                }
+            } while (true);
+        } else {
+            //TODO
+            ctx.request.writeEntityBody(buffer);
         }
     }
 
     @Override
     public void handleOutbound(ChannelContext context, ChannelHandlerChain chain, ByteBuffer buffer) {
-        if (buffer.hasRemaining()) {
-            context.putOutbound(buffer);
-        } else {
-            context.free(buffer);
+        try {
+            while (buffer.hasRemaining()) {
+                context.send(buffer);
+            }
+        } catch (IOException ex) {
+            context.handleError(ex);
         }
-    }
 
-    @Override
-    public void handleError(ChannelContext context, ChannelHandlerChain chain, Throwable cause) {
-        cause.printStackTrace();
+        context.freeBuffer(buffer);
     }
 
 }

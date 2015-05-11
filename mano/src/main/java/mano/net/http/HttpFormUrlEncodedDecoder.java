@@ -7,6 +7,16 @@
 package mano.net.http;
 
 import com.diosay.mano.io.ChannelBuffer;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 
 /**
@@ -16,44 +26,75 @@ import java.util.HashMap;
  */
 public class HttpFormUrlEncodedDecoder implements HttpEntityBodyDecoder {
 
-    ChannelBuffer temp;
-    String line;
-    boolean done;
+//    ChannelBuffer temp;
+//    String line;
+//    boolean done;
+//    long length;
+//    java.io.OutputStream stream;
+//
+//    private <T extends HttpEntityBodyAppender> void line(ChannelBuffer buffer, T appender) {
+//        line = buffer.readln(appender.getEncoding());
+//        if (line == null && buffer.remaining() == appender.getContentLength()) {
+//            line = new String(buffer.array(), buffer.offset() + buffer.position(), buffer.remaining(), appender.getEncoding());
+//            buffer.position(buffer.limit());
+//        }
+//        if (line != null) {
+//            temp = null;
+//            done = true;
+//            HashMap<String, String> map = new HashMap<>();
+//            HttpUtil.queryStringToMap(line, map, appender.getEncoding());
+//            line = null;
+//            map.entrySet().forEach(item -> {
+//                appender.appendFormItem(item.getKey(), item.getValue());
+//            });
+//            appender.notifyDone();
+//
+//        }
+//    }
+//
+//    @Override
+//    public <T extends HttpEntityBodyAppender> void onRead(ChannelBuffer buffer, T appender) {
+//        if (done) {
+//            buffer.position(buffer.limit());//TODO//
+//            return;
+//        }
+//        if (buffer.capacity() >= appender.getContentLength()) {
+//            line(buffer, appender);
+//        } else {
+//            if (temp == null) {
+//                temp = new ChannelBuffer((int) appender.getContentLength());
+//            }
+//            buffer.buffer.get(temp.array(), temp.offset() + temp.position(), buffer.buffer.remaining());
+//            line(temp, appender);
+//        }
+//    }
+//
+//    private BufferedReader getReader(OutputStream out, Charset c) throws IOException {
+//        InputStreamReader ir;
+//        if (out instanceof ByteArrayOutputStream) {
+//            ir = new InputStreamReader(new ByteArrayInputStream(((ByteArrayOutputStream) out).toByteArray()), c);
+//        } else if (out instanceof FileOutputStream) {
+//            ir = new InputStreamReader(new FileInputStream(((FileOutputStream) out).getFD()), c);
+//        } else {
+//            throw new java.lang.UnsupportedOperationException("不支持流类型：" + out);
+//        }
+//
+//        return new BufferedReader(ir);
+//    }
 
-    private <T extends HttpEntityBodyAppender> void line(ChannelBuffer buffer, T appender) {
-        line = buffer.readln(appender.getEncoding());
-        if (line == null && buffer.remaining() == appender.getContentLength()) {
-            line = new String(buffer.array(), buffer.offset() + buffer.position(), buffer.remaining(), appender.getEncoding());
-            buffer.position(buffer.limit());
-        }
-        if (line != null) {
-            temp = null;
-            done = true;
-            HashMap<String, String> map = new HashMap<>();
-            HttpUtil.queryStringToMap(line, map,appender.getEncoding());
-            line = null;
-            map.entrySet().forEach(item -> {
-                appender.appendFormItem(item.getKey(), item.getValue());
-            });
-            appender.notifyDone();
+    public <T extends HttpEntityBodyAppender> void decode(T appender) throws IOException {
 
-        }
-    }
-
-    @Override
-    public <T extends HttpEntityBodyAppender> void onRead(ChannelBuffer buffer, T appender) {
-        if (done) {
-            buffer.position(buffer.limit());//TODO//
-            return;
-        }
-        if (buffer.capacity() >= appender.getContentLength()) {
-            line(buffer, appender);
-        } else {
-            if (temp == null) {
-                temp = new ChannelBuffer((int) appender.getContentLength());
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(appender.getEntityBodyStream(), appender.getEncoding()))) {
+            String line = reader.readLine();
+            if (line != null) {
+                HashMap<String, String> map = new HashMap<>();
+                HttpUtil.queryStringToMap(line, map, appender.getEncoding());
+                
+                map.entrySet().forEach(item -> {
+                    appender.appendFormItem(item.getKey(), item.getValue());
+                });
+                appender.notifyDone();
             }
-            buffer.buffer.get(temp.array(), temp.offset() + temp.position(), buffer.buffer.remaining());
-            line(temp, appender);
         }
     }
 

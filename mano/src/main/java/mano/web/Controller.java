@@ -8,8 +8,8 @@ package mano.web;
 
 import mano.ContextClassLoader;
 import mano.data.json.*;
-import mano.http.HttpContext;
-import mano.http.HttpPostFile;
+import mano.net.http.HttpContext;
+import mano.net.http.HttpPostFile;
 import mano.util.logging.ILogger;
 
 /**

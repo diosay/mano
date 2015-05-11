@@ -54,7 +54,7 @@ public class SSLHandler implements ChannelHandler {
     }
 
     @Override
-    public void handleConnected(ChannelContext context, ChannelHandlerChain chain) {
+    public void handleOpened(ChannelContext context, ChannelHandlerChain chain) {
         try {
             HandshakeState state = new HandshakeState();
             state.context = context;
@@ -71,7 +71,7 @@ public class SSLHandler implements ChannelHandler {
             System.out.println("read0...");
             if (state.await()) {
                 System.out.println("ok?????" + state.handshaked);
-                chain.handleConnected(context);
+                chain.handleClosed(context);
             } else {
                 throw new SSLException("handshake failed");
             }
@@ -85,8 +85,8 @@ public class SSLHandler implements ChannelHandler {
     }
 
     @Override
-    public void handleDisconnected(ChannelContext context, ChannelHandlerChain chain) {
-        chain.handleDisconnect(context);
+    public void handleClosed(ChannelContext context, ChannelHandlerChain chain) {
+        chain.handleClosed(context);
     }
 
     static void runDelegatedTask(HandshakeState state) {
@@ -187,7 +187,8 @@ public class SSLHandler implements ChannelHandler {
                         dst2.flip();
                         System.out.println("wrap..." + dst2);
                         if (dst2.hasRemaining()) {
-                            context.putOutbound(dst2);
+                            throw new java.lang.UnsupportedOperationException();
+                            //context.putOutbound(dst2);
                         }
                         System.out.println("SSS" + result);
                         state.status = result.getHandshakeStatus();
@@ -264,10 +265,10 @@ public class SSLHandler implements ChannelHandler {
         }
     }
 
-    @Override
-    public void handleError(ChannelContext context, ChannelHandlerChain chain, Throwable cause) {
-        chain.handleError(context, cause);
-    }
+//    @Override
+//    public void handleError(ChannelContext context, ChannelHandlerChain chain, Throwable cause) {
+//        chain.handleError(context, cause);
+//    }
 
     @Override
     public void setProperty(String property, Object value) {
@@ -369,7 +370,7 @@ public class SSLHandler implements ChannelHandler {
                     keep.compact();
                     if (keep.remaining() >= buffer.remaining()) {
                         keep.put(buffer);
-                        context.free(buffer);
+                        context.freeBuffer(buffer);
                         buffer = keep;
                     } else {
                         ByteBuffer swap = bufferPool.get();
@@ -379,10 +380,10 @@ public class SSLHandler implements ChannelHandler {
                         if (keep.capacity() == bufferPool.getBufferSize()) {
                             bufferPool.put(keep);
                         } else {
-                            context.free(keep);
+                            context.freeBuffer(keep);
                         }
                         swap.put(buffer);
-                        context.free(buffer);
+                        context.freeBuffer(buffer);
                         buffer = swap;
                     }
                     buffer.flip();
@@ -412,7 +413,7 @@ public class SSLHandler implements ChannelHandler {
                     if (buffer.capacity() == bufferPool.getBufferSize()) {
                         bufferPool.put(buffer);
                     } else {
-                        context.free(buffer);
+                        context.freeBuffer(buffer);
                     }
                 }
                 if (status == HandshakeStatus.NEED_UNWRAP) {
@@ -467,7 +468,7 @@ public class SSLHandler implements ChannelHandler {
             ByteBuffer dst;
             while (buffer.hasRemaining()) {
                 try (ChannelHandlerChain tmp = chain.duplicate()) {
-                    dst = context.allocate();
+                    dst = context.allocBuffer();
                     dst.clear();
                     copyTo(buffer, dst);
                     dst.flip();
@@ -480,7 +481,7 @@ public class SSLHandler implements ChannelHandler {
             ByteBuffer dst;
             while (buffer.hasRemaining()) {
                 try (ChannelHandlerChain tmp = chain.duplicate()) {
-                    dst = context.allocate();
+                    dst = context.allocBuffer();
                     dst.clear();
                     copyTo(buffer, dst);
                     dst.flip();
@@ -520,7 +521,8 @@ public class SSLHandler implements ChannelHandler {
                         dst.flip();
                         System.out.println("wrap..." + dst);
                         if (dst.hasRemaining()) {
-                            context.putOutbound(dst);
+                            throw new java.lang.UnsupportedOperationException();
+                            //context.putOutbound(dst);
                         }
                         status = result.getHandshakeStatus();
                     }
@@ -583,7 +585,8 @@ public class SSLHandler implements ChannelHandler {
                         dst.flip();
                         System.out.println("wrap..." + dst);
                         if (dst.hasRemaining()) {
-                            context.putOutbound(dst);
+                            throw new java.lang.UnsupportedOperationException();
+                            //context.putOutbound(dst);
                         }
                         status = result.getHandshakeStatus();
                     }

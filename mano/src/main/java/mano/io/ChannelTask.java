@@ -9,6 +9,7 @@ package mano.io;
 
 
 /**
+ * @deprecated 移除
  * 表示一个用于在 {@link Channel} 中排队的异步任务。
  * @author sixmoon
  */
@@ -16,7 +17,7 @@ package mano.io;
 public interface ChannelTask {
     /**
      * 当被成功调度时执行。
-     * @param context {@link ChannelContext}
+     * @param context {@link ChannelContextOld}
      */
-    void execute(ChannelContext context);
+    void execute(ChannelContextOld context);
 }

@@ -19,10 +19,10 @@ public interface Channel extends java.nio.channels.Channel{
     /**
      * 提交任务到执行队列中。
      *
-     * @param task {@link ChannelTask}
+     * @param future {@link ChannelFuture}
      * @throws ChannelException 当前通道已经关闭时触发。
      */
-    void submit(ChannelTask task) throws ChannelException;
+    void submit(ChannelFuture future) throws ChannelException;
 
     /**
      * 判断此信道是否使用安全套接字（即 SSL/TLS）。
@@ -31,19 +31,27 @@ public interface Channel extends java.nio.channels.Channel{
 
     /**
      * 判断通道中是否有挂起的写任务。
+     * @deprecated 
      */
-    boolean hasPaddingWrite();
+    //boolean hasPaddingWrite();
 
     /**
      * 判断通道中是否有挂起的读任务。
+     * @deprecated f
      */
-    boolean hasPaddingRead();
+    //boolean hasPaddingRead();
 
     /**
      * 提交一个从信道中读取数据的任务到队列中。
      * @throws ChannelException 当前通道已经关闭时触发。
      */
     void read() throws ChannelException;
+    
+    /**
+     * 提交一个从信道中读取数据的任务到队列中。
+     * @throws ChannelException 当前通道已经关闭时触发。
+     */
+    void read(ByteBuffer buffer) throws ChannelException;
 
     /**
      * 将缓冲区排入队列以便执行读操作。
@@ -51,10 +59,11 @@ public interface Channel extends java.nio.channels.Channel{
      * 注：该方法请在具体任务中实现，不要在具体业务代码中调用。
      * 参见 {@link ChannelTask}。
      * 
+     * @deprecated 
      * @param buffer {@link ByteBuffer}
      * @throws ChannelException 当前通道已经关闭时触发。
      */
-    void queueReadBuffer(ByteBuffer buffer) throws ChannelException;
+    //void queueReadBuffer(ByteBuffer buffer) throws ChannelException;
 
     /**
      * 将指定字符序列经过编码后写入信道。
@@ -77,13 +86,24 @@ public interface Channel extends java.nio.channels.Channel{
      * 将指定字节组写入信道。
      *
      * @param buffer 字节组。
+     * @throws ChannelException 当前通道已经关闭时触发。
+     */
+    void write(ByteBuffer buffer,boolean copy) throws ChannelException;
+    
+    /**
+     * 将指定字节组写入信道。
+     *
+     * @param buffer 字节组。
      * @param offset 字节组的开始位置。
      * @param count 要写入的长度。
      * @throws ChannelException 当前通道已经关闭时触发。
      */
     void write(byte[] buffer, int offset, int count) throws ChannelException;
 
+    void write(String filename, long position, long length) throws ChannelException;
+    
     /**
+     * @deprecated 
      * 将缓冲区排入队列以便执行写操作。
      * <p>
      * 注：该方法请在具体任务中实现，不要在具体业务代码中调用。
@@ -91,7 +111,7 @@ public interface Channel extends java.nio.channels.Channel{
      * @param buffer {@link ByteBuffer}
      * @throws ChannelException 当前通道已经关闭时触发。
      */
-    void queueWriteBuffer(ByteBuffer buffer) throws ChannelException;
+    //void queueWriteBuffer(ByteBuffer buffer) throws ChannelException;
 
     /**
      * 发起关闭当前数据通道。
