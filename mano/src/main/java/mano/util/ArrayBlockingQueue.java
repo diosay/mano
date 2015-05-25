@@ -8,6 +8,7 @@ package mano.util;
 
 import java.util.ArrayList;
 import java.util.concurrent.locks.ReentrantLock;
+import mano.Callback;
 import mano.Queue;
 
 /**
@@ -24,12 +25,20 @@ public class ArrayBlockingQueue<E> extends ArrayList<E> implements Queue<E> {
         if (e == null) {
             return false;
         }
+        boolean result;
         lock.lock();
         try {
-            return super.add(e);
+            result= super.add(e);
         } finally {
             lock.unlock();
         }
+        
+        if(result){//TODO:关注该代码的效率
+            synchronized(this){
+                this.notifyAll();
+            }
+        }
+        return result;
     }
 
     @Override
@@ -57,5 +66,25 @@ public class ArrayBlockingQueue<E> extends ArrayList<E> implements Queue<E> {
             lock.unlock();
         }
     }
-
+    
+    
+    private ArrayList<Integer> removes =new ArrayList<>();
+    @Override
+    public void forEachRemove(Callback<? super E,Boolean> action){
+        lock.lock();
+        try {
+            removes.clear();
+            for(int i=0;i<size();i++){
+                if(action.call(get(i))){
+                    removes.add(i);
+                }
+            }
+            for(int i=0;i<removes.size();i++){
+                remove(i);
+            }
+            removes.clear();
+        } finally {
+            lock.unlock();
+        }
+    }
 }

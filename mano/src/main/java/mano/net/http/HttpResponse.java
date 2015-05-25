@@ -223,10 +223,19 @@ public abstract class HttpResponse {
 
     /**
      * 获取响应 Cookie 集合。
-     *
+     * @deprecated 
      * @return
      */
     public HttpResponseCookie getCookie() {
+        return cookie;
+    }
+    
+    /**
+     * 获取响应 Cookie 集合。
+     *
+     * @return
+     */
+    public HttpResponseCookie cookies() {
         return cookie;
     }
 

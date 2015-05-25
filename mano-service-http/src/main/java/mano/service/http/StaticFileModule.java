@@ -12,6 +12,7 @@ import mano.net.http.HttpContext;
 import mano.net.http.HttpHeaderCollection;
 import mano.net.http.HttpModule;
 import mano.net.http.HttpStatus;
+import mano.net.http.HttpUtil;
 import mano.util.NameValueCollection;
 import mano.util.Utility;
 import mano.web.WebApplication;
@@ -47,7 +48,7 @@ public class StaticFileModule implements HttpModule {
             return false;
         }
         boolean range = false;
-        String etag = "\"" + Integer.toHexString((file.lastModified() + "" + file.length() + path).hashCode()) + ":df3\"";
+        String etag =HttpUtil.getETag(file.lastModified() + "" + file.length() + path);// "\"" + Integer.toHexString((file.lastModified() + "" + file.length() + path).hashCode()) + ":df3\"";
         HttpHeaderCollection headers = context.getRequest().headers();
         long since, start = 0, end = 0, len = -1;
         try {

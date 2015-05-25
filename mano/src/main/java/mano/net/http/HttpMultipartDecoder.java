@@ -15,8 +15,6 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import mano.InvalidOperationException;
 import mano.io.BufferUtil;
 
@@ -250,7 +248,7 @@ public class HttpMultipartDecoder implements HttpEntityBodyDecoder {
                     out = new ByteArrayOutputStream();
                 } else {
                     type = FILE;
-                    file = File.createTempFile("post_", ".tmp");
+                    file = File.createTempFile("post_", ".tmp");//TODO:, new File("D:\\tmp")
                     out = new FileOutputStream(file);
                 }
                 state = DATA;
@@ -337,19 +335,40 @@ public class HttpMultipartDecoder implements HttpEntityBodyDecoder {
 
     @Override
     public <T extends HttpEntityBodyAppender> void decode(T appender) throws IOException {
-        byte[] array = new byte[1024 * 8];
-        ByteBufferBuffer buffer = new ByteBufferBuffer(ByteBuffer.wrap(array));
+        //System.out.println("content len:"+appender.getContentLength());
+        byte[] array = new byte[1024 * 4];
+        ByteBufferBuffer buffer = new ByteBufferBuffer(ByteBuffer.allocate(1024*8));
+        long tot=0;
         try (InputStream stream = appender.getEntityBodyStream()) {
-            int limit;
-            while ((limit = stream.read(array)) > 0) {
-                buffer.clear();
-                buffer.buffer.limit(limit);
+            int reads;
+            buffer.clear();
+            do {
+                reads = stream.read(array, 0, Math.min(buffer.buffer.remaining(), array.length));
+                //System.out.println("reads:"+reads);
+                if (reads < 1) {
+                    break;
+                }
+                tot+=reads;
+                buffer.buffer.put(array, 0, reads);
+                buffer.buffer.flip();
+                //buffer.buffer.limit(buffer.position() + reads);
                 try {
                     this.onRead(buffer, appender);
                 } catch (Exception ex) {
                     throw new IOException(ex);
                 }
-            }
+                buffer.buffer.compact();
+            } while (true);
+            //System.out.println("read len:"+tot+" rm:"+buffer.buffer.remaining()+"/done:"+done);
+//            while ((limit = stream.read(array)) > 0) {
+//                buffer.clear();
+//                buffer.buffer.limit(limit);
+//                try {
+//                    this.onRead(buffer, appender);
+//                } catch (Exception ex) {
+//                    throw new IOException(ex);
+//                }
+//            }
         }
     }
 

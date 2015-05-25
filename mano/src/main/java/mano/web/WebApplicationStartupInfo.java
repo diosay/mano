@@ -6,26 +6,21 @@
  */
 package mano.web;
 
-import mano.service.IService;
-import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
-import mano.ContextClassLoader;
+import mano.logging.Log;
 import mano.net.http.HttpModuleSettings;
 import mano.net.http.HttpServer;
-import mano.service.Service;
-import mano.service.ServiceProvider;
+import mano.runtime.RuntimeClassLoader;
+import mano.runtime.Service;
 import mano.util.NameValueCollection;
 import mano.util.Utility;
-import mano.util.logging.Logger;
 
 /**
  *
@@ -34,7 +29,7 @@ import mano.util.logging.Logger;
 public class WebApplicationStartupInfo {
 
     public Service service;
-    public ContextClassLoader serviceLoader;
+    public RuntimeClassLoader serviceLoader;
     public NameValueCollection<HttpModuleSettings> modules = new NameValueCollection<>();
     public String name;
     public String host;
@@ -123,32 +118,39 @@ public class WebApplicationStartupInfo {
             
             //TODO:应用日志
             //, new URL[0], service.getContext()
-            ContextClassLoader loader = new ContextClassLoader(service.getContext());
+            RuntimeClassLoader pcl=(RuntimeClassLoader)service.getProperty(Service.PROP_CLASS_LOADER, null);
+            if(pcl==null){
+                throw new java.lang.NullPointerException("指定服务未设置类加载器。");
+            }
+            RuntimeClassLoader loader = new RuntimeClassLoader(pcl);
             
-            loader.register(files.toArray(new String[0]));
+            loader.addJars(files.toArray(new String[0]));
             
-            loader.registerFloder(getServerInstance().mapPath("WEB-INF/classes"));
+//            for(String ss:files){
+//                System.out.println("APP CLASS PATH :"+ss);
+//            }
             
-            this.exports.entrySet().iterator().forEachRemaining(item -> {
-                try {
-                    loader.registerExport(item.getKey(), item.getValue());
-                } catch (ClassNotFoundException ex) {
-                    loader.getLogger().warn(null, ex);
-                }
-            });
+            loader.addClassesPath(getServerInstance().mapPath("WEB-INF/classes"));
+//            this.exports.entrySet().iterator().forEachRemaining(item -> {
+//                try {
+//                    loader.registerExport(item.getKey(), item.getValue());
+//                } catch (ClassNotFoundException ex) {
+//                    loader.getLogger().warn(null, ex);
+//                }
+//            });
             
             
             app = (WebApplication) loader.newInstance(this.type);
             if (app != null) {
-                Method init = WebApplication.class.getDeclaredMethod("init", WebApplicationStartupInfo.class, ContextClassLoader.class);
+                Method init = WebApplication.class.getDeclaredMethod("init", WebApplicationStartupInfo.class, RuntimeClassLoader.class);
                 init.setAccessible(true);
                 init.invoke(app, this, loader);
                 return app;
             }
         } catch (InvocationTargetException ex) {
-            Logger.getLog().error("WebApplicationStartupInfo.getInstance", ex.getTargetException() == null ? ex : ex.getTargetException());
+            Log.TRACE.debug("WebApplicationStartupInfo.getInstance", ex.getTargetException() == null ? ex : ex.getTargetException());
         } catch (Throwable ex) {
-            Logger.getLog().error("WebApplicationStartupInfo.getInstance", ex);
+            Log.TRACE.debug("WebApplicationStartupInfo.getInstance", ex);
         }
         return null;
     }

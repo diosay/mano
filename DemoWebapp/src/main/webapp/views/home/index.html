@@ -11,13 +11,12 @@ and open the template in the editor.
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
-        <div>FORM:</div>
+        <div>FORM:>>>{{time}}</div>
         <form action="/home/index" method="post" enctype="multipart/form-data">
             <input name="a"/><br>
             <input name="b"/><br>
             <input name="c"/><br>
-            <input type="file" name="file">
-            <button type="submit">submit</button>
+            <input type="file" name="file"><textarea name="text" style="width: 500px;height: 400px;"></textarea><button type="submit">submit</button>
         </form>
     </body>
 </html>

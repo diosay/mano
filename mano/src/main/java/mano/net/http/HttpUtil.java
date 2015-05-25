@@ -18,6 +18,13 @@ import java.util.Map;
  */
 public class HttpUtil {
 
+    public static String getETag(Object value){
+        if(value==null){
+            throw new java.lang.NullPointerException("value");
+        }
+        return "\"" + Integer.toHexString(value.hashCode()) + ":d3d\"";
+    }
+    
     public static void queryStringToMap(String query, Map<String, String> result) {
         queryStringToMap(query,result,Charset.forName("UTF-8"));
     }
@@ -49,14 +56,14 @@ public class HttpUtil {
 
                 try {
                     value = URLDecoder.decode(value, encoding.name());//TODO:编码识别GB18030
-                } catch (UnsupportedEncodingException ex) {
-
+                } catch (Throwable ex) {
+                    
                 }
                 if (result.containsKey(key)) {
                     String old = result.get(key);
                     result.put(key, (old == null ? "" : old) + "," + (value == null ? "" : value));
                 } else {
-                    result.put(key, value);
+                    result.put(key, (value == null ? "" : value));
                 }
             }
         }

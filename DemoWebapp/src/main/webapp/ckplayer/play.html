@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Player demos</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <div id="a1"></div>
+        <button type="button" onclick="CKobject.getObjectById('ckplayer_a1').playOrPause()">play</button>
+        <div id="log"></div>
+        <script type="text/javascript" src="ckplayer/ckplayer.js" charset="utf-8"></script>
+        <script type="text/javascript">
+            function log(str) {
+                str = '<br>' + str;
+                window.document.getElementById('log').innerHTML = str + window.document.getElementById('log').innerHTML;
+            }
+            function loadedHandler() {
+                log('loaded handler...');
+                console.log(CKobject.getObjectById('ckplayer_a1'));
+                if (CKobject.getObjectById('ckplayer_a1').getType()) {
+                    log('播放器已加载，调用的是HTML5播放模块');
+                    CKobject.getObjectById('ckplayer_a1').addListener('play', playHandler);
+                }
+                else {
+                    log('播放器已加载，调用的是Flash播放模块');
+                    CKobject.getObjectById('ckplayer_a1').addListener('play', 'playHandler');
+                }
+            }
+            
+            function showStatus() {
+                var status = CKobject.getObjectById('ckplayer_a1').getStatus();
+                log("总时长：" + (status.totaltime||status.totalTime) + " 当前进度：" + status.time + " 状态：" + status.play);
+            }
+            
+            function playHandler() {
+                log('播放了');
+                setInterval("showStatus();", 500);
+
+            }
+            
+            var flashvars = {
+                f: '/videos/demo.flv',
+                p: 1,
+                c: 0,
+                b: 0,
+                s: 0,
+                loaded: 'loadedHandler'
+            };
+            var params = {bgcolor: '#FFF', allowFullScreen: true, allowScriptAccess: 'always', wmode: 'transparent'};
+            //CKobject.embedSWF('ckplayer/ckplayer.swf', 'a1', 'ckplayer_a1', '600', '400', flashvars, params);
+            CKobject.embed('ckplayer/ckplayer.swf','a1','ckplayer_a1','600','400',false,flashvars,video,params);
+            /*
+             CKobject.embedSWF(播放器路径,容器id,播放器id/name,播放器宽,播放器高,flashvars的值,其它定义也可省略);
+             下面三行是调用html5播放器用到的
+             */
+            var video = ['/videos/demo.mp4->video/mp4'
+                        , '/videos/demo.webm->video/webm'
+                        , '/videos/demo.ogv->video/ogg'];
+            var support = ['iPad', 'iPhone', 'ios', 'android+false', 'msie10+false'];
+            video = ['/videos/demo.mp4->video/mp4'];
+            support = ['all'];
+            //CKobject.embedHTML5('a1', 'ckplayer_a1', 600, 400, video, flashvars, support);
+
+
+            function closelights() {//关灯
+                log(' 本演示不支持开关灯');
+            }
+            function openlights() {//开灯
+                log(' 本演示不支持开关灯');
+            }
+        </script>
+    </body>
+</html>

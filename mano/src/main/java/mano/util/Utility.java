@@ -47,6 +47,32 @@ public class Utility {
         return sb;
     }
 
+    public static StringBuilder replaceMarkup(StringBuilder sb, String key, Map... props) {
+        Matcher matcher = pattern.matcher(sb);
+        Object obj=null;
+        while (matcher.find()) {
+            String name = matcher.group(1);
+            if (name.equals(key)) {
+                throw new IllegalArgumentException("Predefined label cannot be self referencing:" + key + "/" + name);
+            }else {
+                for (Map prop : props) {
+                    if (!prop.containsKey(name)) {
+                        continue;
+                    } else {
+                        obj = prop.getOrDefault(name, null);
+                        obj = obj == null ? "" : obj;
+                    }
+                }
+                if(obj==null){
+                    throw new IllegalArgumentException("Predefined label is not defined:" + key + "/" + name);
+                }else{
+                    sb.replace(matcher.start(), matcher.end(), obj.toString());
+                }
+            }
+        }
+        return sb;
+    }
+
     /**
      * @deprecated @param props
      */

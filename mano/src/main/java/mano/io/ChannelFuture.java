@@ -60,6 +60,14 @@ public abstract class ChannelFuture {
     public final synchronized void release() {
         //provider().release(this);
     }
+    
+    /**
+     * 获取一个值以指示下次调用时继续执行。
+     * @return 
+     */
+    public boolean keepAndNextCall(){
+        return false;
+    }
 
     public final void execute(ChannelContext context) {
         doExecute(context);

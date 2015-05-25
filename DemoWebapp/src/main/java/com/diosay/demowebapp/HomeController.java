@@ -8,10 +8,13 @@ package com.diosay.demowebapp;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Map;
+import mano.DateTime;
 import mano.web.Controller;
 import mano.web.UrlMapping;
 import mano.net.http.HttpMethod;
 import mano.net.http.HttpPostFile;
+import mano.security.fliters.XSSHtmlFliter;
+import mano.web.UrlCached;
 
 /**
  *
@@ -20,8 +23,9 @@ import mano.net.http.HttpPostFile;
 @UrlMapping("/home")
 public class HomeController extends Controller {
 
+    @UrlCached
     @UrlMapping(value = "/index")
-    void index() throws IOException {
+    void index() throws IOException, InterruptedException {
 
         if (this.getContext().getRequest().getMethod().equals(HttpMethod.POST)) {
 //            this.getContext().getRequest().loadEntityBody();
@@ -33,17 +37,53 @@ public class HomeController extends Controller {
 //            //
 
             for (Map.Entry<String, String> e : this.getContext().getRequest().form().entrySet()) {
-                text("key:" + e.getKey() + " = " + e.getValue() + "<br>");
+                this.getContext().getResponse().write("key:" + e.getKey() + " = " + e.getValue() + "<br>");
             }
-            HttpPostFile f=this.file("file");
-            if(f!=null){
-                f.savaAs("D:\\tmp\\"+f.getName()+""+f.getExtension());
-                text("file:"+f.getOriginal());
+            HttpPostFile f = this.file("file");
+            if (f != null) {
+                f.savaAs("D:\\tmp\\" + f.getName() + "" + f.getExtension());
+                this.getContext().getResponse().write("file:" + f.getOriginal());
             }
-            
-
+            this.getContext().getResponse().write(".all done");
         } else {
+            //Thread.sleep(1000);
+            set("time", DateTime.now().toString());
             this.view();
         }
     }
+
+    @UrlMapping(value = "/test")
+    void test() {
+        text(this.getContext().getRequest().url().toString() + "<br>");
+        text(this.session("sky") + "");
+    }
+
+    @UrlMapping(value = "/session")
+    void session() {
+        this.session("sky", DateTime.now().toString());
+        text("set session:" + this.session("sky") + "");
+    }
+
+    @UrlMapping(value = "/xxs")
+    void xss() {
+        StringBuilder sb = new StringBuilder("<form method=\"post\"><textarea name=\"text\" style=\"width: 500px;height: 300px;\">");
+
+        if (this.isPost()) {
+            sb.append(this.form("text"));
+        }
+
+        sb.append("</textarea><button type=\"submit\">submit</button></form><hr>输出：<br>");
+        XSSHtmlFliter filter = new XSSHtmlFliter();
+        if (this.isPost()) {
+            sb.append(filter.encode(this.form("text")));
+            sb.append("<br>");
+            sb.append("<textarea>" + filter.encode(this.form("text")) + "</textarea>");
+            sb.append("<br>");
+            //sb.append(this.form("text"));
+        }
+
+        this.text(sb.toString(), "text/html;charset=utf-8");
+
+    }
+
 }

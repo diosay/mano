@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.JarURLConnection;
 import java.net.MalformedURLException;
@@ -20,10 +21,14 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import mano.DateTime;
+import mano.caching.CacheProvider;
 import mano.caching.LruCacheProvider;
 import mano.net.http.HttpContext;
 import mano.net.http.HttpMethod;
 import mano.net.http.HttpModule;
+import mano.net.http.HttpStatus;
+import mano.net.http.HttpUtil;
 import mano.util.Utility;
 import mano.web.ActionFilter;
 import mano.web.ActionHandler;
@@ -31,11 +36,11 @@ import mano.web.ActionResult;
 import mano.web.CookieParam;
 import mano.web.Filter;
 import mano.web.FilterGroup;
-import mano.web.Module;
 import mano.web.Named;
 import mano.web.PathParam;
 import mano.web.RequestParam;
 import mano.web.SessionParam;
+import mano.web.UrlCached;
 import mano.web.UrlMapping;
 import mano.web.ViewContext;
 import mano.web.ViewEngine;
@@ -56,10 +61,9 @@ public class UrlRoutingModule implements HttpModule {
                 try {
                     this.scanFile(new File(URLDecoder.decode(url.getFile(), "UTF-8")));
                 } catch (UnsupportedEncodingException ex) {
-//                    if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                        app.getLogger().debug(null, ex);
-//                    }
-                    app.getLogger().debug(null, ex);
+                    if (app.getLogger().isDebugEnabled()) {
+                        app.getLogger().debug(ex);
+                    }
                 }
             } else if ("jar".equals(protocol)) {
                 scanJar(url, null);
@@ -71,7 +75,9 @@ public class UrlRoutingModule implements HttpModule {
             try {
                 jar = ((JarURLConnection) url.openConnection()).getJarFile();
             } catch (IOException ex) {
-                app.getLogger().debug("URL:" + url.toString(), ex);
+                if (app.getLogger().isDebugEnabled()) {
+                    app.getLogger().debug("URL:" + url.toString(), ex);
+                }
                 return;
             }
             Enumeration<JarEntry> entries = jar.entries();
@@ -86,10 +92,9 @@ public class UrlRoutingModule implements HttpModule {
                     try {
                         resolveRoute(app.getLoader().loadClass(name));
                     } catch (Throwable ex) {
-//                        if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                            app.getLogger().debug(null, ex);
-//                        }
-                        app.getLogger().debug(null, ex);
+                        if (app.getLogger().isDebugEnabled()) {
+                            app.getLogger().debug(ex);
+                        }
                     }
                 }
             }
@@ -110,10 +115,9 @@ public class UrlRoutingModule implements HttpModule {
                         scanJar(new URL("jar:file://" + dir.toString() + "!/"), dir.getName().substring(0, dir.getName().length() - 4));
                     }
                 } catch (MalformedURLException ex) {
-//                    if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                        app.getLogger().debug(null, ex);
-//                    }
-                    app.getLogger().debug(null, ex);
+                    if (app.getLogger().isDebugEnabled()) {
+                        app.getLogger().debug(ex);
+                    }
                 }
             } else if (dir.isFile() && dir.getName().toLowerCase().endsWith(".class")) {
                 //如果是java类文件 去掉后面的.class 只留下类名  
@@ -121,10 +125,9 @@ public class UrlRoutingModule implements HttpModule {
                 try {
                     resolveRoute(app.getLoader().loadClass(className));
                 } catch (Throwable ex) {
-//                    if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                        app.getLogger().debug(null, ex);
-//                    }
-                    app.getLogger().debug(null, ex);
+                    if (app.getLogger().isDebugEnabled()) {
+                        app.getLogger().debug(ex);
+                    }
                 }
             } else if (dir.isDirectory()) {
                 dir.listFiles((file) -> {
@@ -133,172 +136,6 @@ public class UrlRoutingModule implements HttpModule {
                 });
             }
         }
-//
-//        final Class<?> foundClass(String type) {
-//            try {
-//                return app.getLoader().loadClass(type);
-//            } catch (Throwable ex) {
-//                if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                    app.getLogger().debug(null, ex);
-//                }
-//            }
-//            return null;
-//        }
-
-        //final Pattern pattern = Pattern.compile("\\{\\s*(\\w+)\\s*\\}");
-//        public void onFoundClass(Class<?> clazz) {
-//            if (clazz == null) {
-//                return;
-//            }
-//            //.*/controller/action/(\w*)/(\w*).*
-//            //\{(\w+)(\?){0,1}\}
-//            //{?name}
-//            //default +1000
-//            UrlMapping mapping;
-//            String url = null;
-//            int verb = 0;
-//            boolean pojo = false;
-//            Annotation[][] ps;
-//            String pname;
-//            Map<Integer, String> map = new HashMap<>();
-//            String part;
-//            ArrayList<String> list = new ArrayList<>();
-//            final StringBuilder sb = new StringBuilder();
-//            Matcher matcher = pattern.matcher(sb);
-//            Route route;
-//
-//            //查找类，获取第1部分URL
-//            if (Controller.class.isAssignableFrom(clazz)) {
-//                mapping = clazz.getAnnotation(UrlMapping.class);
-//                if (mapping != null) {
-//                    url = mapping.value();
-//                }
-//                if (url == null || "".equals(url.trim())) {
-//                    url = clazz.getSimpleName().toLowerCase();
-//                    if (url.endsWith("controller")) {
-//                        url = url.substring(0, url.length() - 10);
-//                    }
-//                }
-//            } else {
-//                mapping = clazz.getAnnotation(UrlMapping.class);
-//                if (mapping == null) {
-//                    return;
-//                }
-//                try {
-//                    clazz.getMethod("setService", ViewContext.class);
-//                } catch (Throwable ex) {
-//                    return;
-//                }
-//                url = mapping.value();
-//                //verb = mapping.verb();
-//                pojo = true;
-//                if (url == null || "".equals(url.trim())) {
-//                    url = clazz.getSimpleName().toLowerCase();
-//                    if (url.endsWith("controller")) {
-//                        url = url.substring(0, url.length() - 10);
-//                    }
-//                }
-//            }
-//            if (!url.startsWith("/")) {
-//                url = "/" + url;
-//            }
-//            if (!url.endsWith("/")) {
-//                url += "/";
-//            }
-//
-//            //查找方法，获取第2部分URL 和签名参数
-//            for (Method method : clazz.getDeclaredMethods()) {
-//                map.clear();
-//                mapping = method.getAnnotation(UrlMapping.class);
-//                if (mapping == null) {
-//                    continue;
-//                }
-//
-////                if (mapping.verb() > 0) {
-////                    verb = mapping.verb(); //重写父级定义
-////                }
-//                part = mapping.value();
-//
-//                if (part == null || "".equals(part.trim())) {
-//                    part = method.getName();
-//                }
-//                if (part.startsWith("/")) {
-//                    part = part.substring(1);
-//                }
-//
-//                list.clear();
-//                sb.setLength(0);
-//                sb.append(url);
-//                sb.append(part);
-//                matcher = pattern.matcher(sb);
-//                while (matcher.find()) {
-//                    String name = matcher.group(1);
-//                    list.add(name);
-//                    sb.replace(matcher.start(), matcher.end(), "(?<" + name + ">\\w+)");
-//                }
-//                //解决最后一个元素不能被替换的BUG
-//                matcher = pattern.matcher(sb);
-//                while (matcher.find()) {
-//                    String name = matcher.group(1);
-//                    list.add(name);//{1}{2}
-//                    sb.replace(matcher.start(), matcher.end(), "(?<" + name + ">\\w+)");
-//                }
-//
-//                //http://blog.sina.com.cn/s/blog_72827fb10101pl9i.html
-//                //http://blog.sina.com.cn/s/blog_72827fb10101pl9j.html
-//                if (sb.charAt(sb.length() - 1) != '$') {
-//                    if (sb.charAt(sb.length() - 1) == '/') {
-//                        sb.append("{0,1}$");
-//                    } else {
-//                        sb.append("/{0,1}$");
-//                    }
-//                }
-//                if (sb.charAt(0) != '^') {
-//                    sb.insert(0, "^");
-//                }
-//
-//                //参数映射集合
-//                ps = method.getParameterAnnotations();
-//                for (int i = 0; i < ps.length; i++) {
-//                    for (int j = 0; j < ps[i].length; j++) {
-//                        if (ps[i][j] instanceof PathParam) {
-//                            pname = ((PathParam) ps[i][j]).value();
-//                        } else {
-//                            pname = "";
-//                        }
-//                        if ("".equals(pname) || !list.contains(pname)) {
-//                            continue;
-//                        }
-//                        if (map.containsKey(i)) {
-//                            //map.put(i, map.get(i) + "," + pname);
-//                        } else {
-//                            map.put(i, pname);
-//                        }
-//                        break;
-//                    }
-//                }
-//
-//                route = new Route();
-//                method.setAccessible(true);
-//                route.call = method;
-//                route.clazz = clazz;
-//                //route.paramsMapping.putAll(map);
-//                route.patten = sb.toString();
-//                route.controller = clazz.getSimpleName().toLowerCase();
-//
-//                if (route.controller.endsWith("controller")) {
-//                    route.controller = route.controller.substring(0, route.controller.length() - 10);
-//                }
-//
-//                route.action = method.getName().toLowerCase();
-//                routeTable.add(route);
-//            }
-//
-//            //PathMapping()
-//            //Routing(x,0);
-//            //clazz.getInterfaces()
-//            //System.out.println(clazz);
-//        }
     }
 
     private class Route {
@@ -310,10 +147,11 @@ public class UrlRoutingModule implements HttpModule {
         String module;
         String controller;
         String action;
-        //String setServiceMethod;
+        long lastAccssed;
         HttpMethod httpMethod;
         Map<Integer, GetValue> paramsMapping;
         ActionFilter[] filters;
+        UrlCached urlCachedMapping;
 
         public ActionFilter[] getActionFilters() throws Exception {
             if (filters == null) {
@@ -376,40 +214,16 @@ public class UrlRoutingModule implements HttpModule {
                 try {
                     test = Pattern.compile(patten, Pattern.CASE_INSENSITIVE);
                 } catch (Throwable ex) {
-//                    if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                        app.getLogger().debug("patten error:" + patten, ex);
-//                    }
-                    app.getLogger().debug("patten error:" + patten, ex);
+                    if (app.getLogger().isDebugEnabled()) {
+                        app.getLogger().debug("patten error:" + patten, ex);
+                    }
                     return false;
                 }
             }
             matcher = test.matcher(tryPath);
             return matcher.matches();
         }
-//        Method m;
-//
-//        private Method getMethod(Class<?> type) throws Exception {
-//            try {
-//                return type.getDeclaredMethod("setService", ViewContext.class);
-//            } catch (NoSuchMethodException ex) {
-//                if (type.getSuperclass() != null) {
-//                    return getMethod(type.getSuperclass());
-//                } else {
-//                    throw ex;
-//                }
-//            } catch (SecurityException ex) {
-//                throw ex;
-//            }
-//        }
 
-//        public void setContext(ActionHandler instance, ViewContext context) throws Exception {
-//            ((ActionHandler) instance).init(context);
-////            if (m == null) {
-////                m = getMethod(clazz);
-////                m.setAccessible(true);
-////            }
-////            m.invoke(instance, context);
-//        }
         public Object getPathValue(HttpContext ctx, String name, Class<?> type) {
             return Utility.cast(type, matcher.group(name));
         }
@@ -435,6 +249,12 @@ public class UrlRoutingModule implements HttpModule {
         }
     }
 
+    private class UrlCacheEntry {
+
+        long lastAccssed;
+        String etag;
+    }
+
     private interface GetValue {
 
         Object value(Route r, HttpContext ctx);
@@ -444,7 +264,9 @@ public class UrlRoutingModule implements HttpModule {
     private Set<Route> routeTable = new LinkedHashSet<>();
     private WebApplication app;
     private HashMap<Class<?>, ActionFilter> actionFilters = new HashMap<>();
-    private LruCacheProvider cache = new LruCacheProvider();
+    private int cacheTimeout = 1000 * 60 * 10;
+    private CacheProvider<Route> routeCache = new LruCacheProvider<>(100);
+    private CacheProvider<UrlCacheEntry> urlCache = new LruCacheProvider<>(100);
     private final Pattern pattern = Pattern.compile("\\{\\s*(\\w+)\\s*\\}");
     private ArrayList<Class<?>> htypes = new ArrayList<>();
 
@@ -461,10 +283,9 @@ public class UrlRoutingModule implements HttpModule {
             try {
                 resolveRoute(tp);
             } catch (Throwable ex) {
-//                if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                    app.getLogger().info(ex);
-//                }
-                app.getLogger().info(ex);
+                if (app.getLogger().isDebugEnabled()) {
+                    app.getLogger().debug(ex);
+                }
             }
         });
 
@@ -474,10 +295,9 @@ public class UrlRoutingModule implements HttpModule {
                 try {
                     scanner.scan(url);
                 } catch (Throwable ex) {
-//                    if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                        app.getLogger().info("scanning jar:" + url, ex);
-//                    }
-                    app.getLogger().info("scanning jar:" + url, ex);
+                    if (app.getLogger().isDebugEnabled()) {
+                        app.getLogger().debug("scanning jar:" + url, ex);
+                    }
                 }
             }
         }
@@ -487,10 +307,9 @@ public class UrlRoutingModule implements HttpModule {
             viewEngine.setTempdir(Utility.toPath(app.getApplicationPath(), "WEB-INF/tmp").toString());
             viewEngine.setViewdir(Utility.toPath(app.getApplicationPath(), "views").toString());
         } catch (Throwable ex) {
-//            if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                app.getLogger().info("failed to initialization module:", ex);
-//            }
-            app.getLogger().info("failed to initialization module:", ex);
+            if (app.getLogger().isDebugEnabled()) {
+                app.getLogger().debug("failed to initialization module:", ex);
+            }
         }
     }
 
@@ -499,16 +318,16 @@ public class UrlRoutingModule implements HttpModule {
             return;
         }
 
-        String module;
+        //String module;
         String controller;
         String action;
         StringBuilder sb = new StringBuilder();
-        Module tmpModule = clazz.getAnnotation(Module.class);
-        if (tmpModule != null) {
-            module = tmpModule.value();
-        } else {
-            module = "";
-        }
+//        Module tmpModule = clazz.getAnnotation(Module.class);
+//        if (tmpModule != null) {
+//            module = tmpModule.value();
+//        } else {
+//            module = "";
+//        }
         Named named = clazz.getAnnotation(Named.class);
         if (named != null) {
             controller = named.value();
@@ -555,10 +374,9 @@ public class UrlRoutingModule implements HttpModule {
                 try {
                     url.replace(matcher.start(), matcher.end(), "(?<" + name + ">\\w+)");
                 } catch (Throwable ex) {
-//                    if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                        app.getLogger().info(sb, ex);
-//                    }
-                    app.getLogger().info(sb, ex);
+                    if (app.getLogger().isDebugEnabled()) {
+                        app.getLogger().debug(sb, ex);
+                    }
                 }
                 //matcher = pattern.matcher(url);
             }
@@ -636,7 +454,10 @@ public class UrlRoutingModule implements HttpModule {
             route.controller = controller;
             route.patten = url.toString();
             route.httpMethod = mapping.verb();
-            route.module = module;
+            //route.module = module;
+
+            route.urlCachedMapping = method.getAnnotation(UrlCached.class);
+
             htypes.add(clazz);
             routeTable.add(route);
         }
@@ -650,7 +471,7 @@ public class UrlRoutingModule implements HttpModule {
 
     @Override
     public boolean handle(HttpContext context, String tryPath) throws Exception {
-        
+
         if (viewEngine == null) {
             return false;
         } else if (!context.getRequest().isConnected()) {
@@ -660,7 +481,8 @@ public class UrlRoutingModule implements HttpModule {
         String key = context.getRequest().getMethod() + ":" + context.getRequest().url().toString();
         Route route = null;
         try {
-            if (cache.get(key) == null) {
+            route = routeCache.get(key);
+            if (route == null) {
 
                 for (Route r : routeTable) {
 //                    if (r.patten.startsWith("res") || r.patten.startsWith("^/res") || r.patten.startsWith("^/res")) {
@@ -669,27 +491,69 @@ public class UrlRoutingModule implements HttpModule {
                     //System.out.println("here:"+r.patten);
                     if (r.test(context, tryPath)) {
                         route = r;
-                        cache.set(key, r, 1000 * 60 * 10, true, null);
+                        routeCache.set(key, r, cacheTimeout, true, null);
                         break;
                     }
                 }
-            } else {
-                route = (Route) (cache.get(key).getValue());
             }
         } catch (Throwable ex) {
-//            if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                app.getLogger().info("matching route error", ex);
-//            }
-            app.getLogger().info("matching route error", ex);
+            if (app.getLogger().isDebugEnabled()) {
+                app.getLogger().debug("matching route error", ex);
+            }
             return false;
         }
 
         if (route == null) {
-//            if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                app.getLogger().info("no matching: " + " url:" + tryPath);
+//            if (app.getLogger().isDebugEnabled()) {
+//                app.getLogger().debug("no matching: " + " url:" + tryPath);
 //            }
-            app.getLogger().info("no matching: " + " url:" + tryPath);
             return false;
+        }
+
+        //GET URL SESSION TIME 
+        if (HttpMethod.GET == context.getRequest().getMethod() && route.urlCachedMapping != null) {
+            String oldEtag = null;
+            String etag = HttpUtil.getETag(key);
+
+            long since;
+            DateTime now = DateTime.now();
+            try {
+                since = DateTime.parseTime(context.getRequest().headers().get("If-Modified-Since").value(), DateTime.FORMAT_GMT);
+            } catch (Exception e) {
+                since = 0;
+            }
+            try {
+                oldEtag = context.getRequest().headers().get("If-None-Match").value().trim();
+            } catch (Exception e) {
+                oldEtag = null;
+            }
+            //System.out.println("oe:" + etag + " et:" + oldEtag);
+            UrlCacheEntry centry = urlCache.get(etag);
+            if (centry != null && centry.lastAccssed == since && etag.equalsIgnoreCase(oldEtag)) {
+                //System.out.println("lllllllllllllll");
+                if ((route.urlCachedMapping.timeout() == -1 && now.getTime() - since >= 1000 * 60 * 2)
+                        || (route.urlCachedMapping.timeout() > 0 && now.getTime() - since >= route.urlCachedMapping.timeout()))//两分钟
+                {
+                    //System.out.println("bbbbbbbbbbbb");
+                } else if ((!"".equals(route.urlCachedMapping.sessionKey())
+                        && null != route.urlCachedMapping.sessionKey())
+                        && context.getSession() != null
+                        && context.getSession().get(route.urlCachedMapping.sessionKey()) != null) {
+                    //System.out.println("mmmmmmmmm");
+                } else {
+                    //System.out.println("kkkkkkkkkkkkkkkkkk");
+                    context.getResponse().status(HttpStatus.NotModified.getStatus());
+                    return true;
+                }
+            }
+            if (centry == null) {
+                centry = new UrlCacheEntry();
+                urlCache.set(etag, centry, 1000 * 60 * 2, true, null);
+            }
+            //System.out.println("zzzzzzzz");
+            centry.lastAccssed = DateTime.parseTime(now.toGMTString(), DateTime.FORMAT_GMT);
+            context.getResponse().setHeader("ETag", etag);
+            context.getResponse().setHeader("Last-Modified", now.toGMTString());
         }
 
         Object[] params = new Object[route.call.getParameterCount()];
@@ -699,10 +563,9 @@ public class UrlRoutingModule implements HttpModule {
                 params[i] = route.paramsMapping.get(i).value(route, context);
             }
         } catch (Throwable ex) {
-//            if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                app.getLogger().info("Failed to convert parameters: " + route.patten, ex);
-//            }
-            app.getLogger().info("Failed to convert parameters: " + route.patten, ex);
+            if (app.getLogger().isDebugEnabled()) {
+                app.getLogger().debug("Failed to convert parameters: " + route.patten, ex);
+            }
             return false;
         } finally {
             route.matcher = null;
@@ -716,20 +579,17 @@ public class UrlRoutingModule implements HttpModule {
         for (ActionFilter filter : route.getActionFilters()) {
             filter.onActionExecuting(vc);
         }
-        route.call.invoke(obj, params);
+        try{
+            route.call.invoke(obj, params);
+        }catch(InvocationTargetException ex){
+            if(ex.getTargetException()!=null && ex.getTargetException() instanceof Exception){
+                throw (Exception)ex.getTargetException();
+            }
+            throw ex;
+        }
         for (ActionFilter filter : route.getActionFilters()) {
             filter.onActionExecuted(vc);
         }
-//        try {
-//            
-//        } catch (Throwable ex) {
-//            Throwable err = ex instanceof InvocationTargetException ? ((InvocationTargetException) ex).getTargetException() : ex;
-//            if (java.lang.MANO_WEB_MACRO.DEBUG) {
-//                app.getLogger().info("failed to execute handler:", err);
-//            }
-//            context.getResponse().write(err.getClass() + ":" + err.getMessage());
-//            return true;
-//        }
         if (!context.getRequest().isConnected()) {
             throw new java.nio.channels.ClosedChannelException();
         }
@@ -750,7 +610,7 @@ public class UrlRoutingModule implements HttpModule {
         viewEngine = null;
         app = null;
         routeTable = null;
-        cache = null;
+        routeCache = null;
         actionFilters = null;
     }
 }

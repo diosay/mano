@@ -11,10 +11,13 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import mano.InvalidOperationException;
-import mano.io.ChannelException;
 import mano.io.TempOutputStream;
+import mano.logging.Log;
 import mano.net.http.HttpEntityBodyAppender;
 import mano.net.http.HttpFormUrlEncodedDecoder;
 import mano.net.http.HttpHeaderCollection;
@@ -52,7 +55,9 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
     //HttpEntityBodyDecoder decoder;
     private boolean pred;
     private TempOutputStream out;
-    
+    private final ReentrantLock lock = new ReentrantLock();
+    final AtomicReference<ByteBuffer> loadBuffer = new AtomicReference<>();
+    java.util.concurrent.Semaphore readLock=new java.util.concurrent.Semaphore(1);
     private synchronized void pre() {
         if (pred) {
             return;
@@ -61,58 +66,64 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
         form = new NameValueCollection<>();
         files = new NameValueCollection<>();
         if (headers.containsKey("Content-length")) {
-            remaining = contentLength = Long.parseLong(headers.get("Content-Length").value());
+            try {
+                remaining = contentLength = Long.parseLong(headers.get("Content-Length").value());
+            } catch (Throwable t) {
+
+            }
         }
 
-        if (contentLength >= 0 && (HttpMethod.POST.equals(method) || HttpMethod.PUT.equals(method))) {
-            hasEntityBody = true;
+        if ((HttpMethod.POST.equals(method) || HttpMethod.PUT.equals(method))) {
+
             if (headers.containsKey("Transfer-Encoding")
                     && "chunked".equalsIgnoreCase(headers.get("Transfer-Encoding").value())) {
                 isChunked = true;
+                hasEntityBody = true;
             }
 
             if (headers.containsKey("Content-Type")) {
-
                 if ("application/x-www-form-urlencoded".equalsIgnoreCase(headers.get("Content-Type").value())) {
+                    hasEntityBody = true;
                     isFormUrlEncoded = true;
                 } else if ("multipart/form-data".equalsIgnoreCase(headers.get("Content-Type").value())) {
                     isFormMultipart = true;
                     boundary = "--" + headers.get("Content-Type").attr("boundary");
+                    hasEntityBody = true;
                 }
             }
+        }
+
+        if (!isChunked && this.remaining <= 0) {
+            loadedFlag.set(true);
         }
     }
 
     void writeEntityBody(ByteBuffer buffer) {
         if (buffer == null) {
-            return;
+            throw new java.lang.NullPointerException("buffer");
         }
-        this.remaining -= buffer.remaining();
-        while (buffer.hasRemaining()) {
-            try {
-                out.write(buffer.get());
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        }
-        if (this.remaining > 0) {
-            buffer.clear();
-            try {
-                this.context.channel().read(buffer);
-            } catch (ChannelException ex) {
-                this.context.handleError(ex);
-            }
-        } else {
-            synchronized (loadedFlag) {
-                loadedFlag.set(true);
-                loadedFlag.notifyAll();
-            }
-        }
+        //System.out.println("in 1");
+//        synchronized (loadBuffer) {
+//            loadBuffer.set(buffer);
+//            loadBuffer.notifyAll();
+//        }
+        
+        loadBuffer.set(buffer);
+        readLock.release();
+//        try{
+//        lock.unlock();
+//        }catch(Throwable t){}
+//        lock.lock();
+//        try {
+//            loadBuffer.set(buffer);
+//        } finally {
+//            lock.unlock();
+//        }
     }
-    
-    private void decodeEntityBody(){
+
+    private void decodeEntityBody() {
         loadEntityBody();
-        if(decodeFlag.get()){
+        if (decodeFlag.get() || !hasEntityBody) {
             return;
         }
         if (isChunked) {
@@ -127,15 +138,24 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
         } else if (isFormMultipart) {
             try {
                 decodeFlag.set(true);
+                //System.out.println("here");
                 new HttpMultipartDecoder().decode(this);
+
+//                synchronized (decodeFlag) {
+//                    this.decodeFlag.set(true);
+//                    this.decodeFlag.notifyAll();
+//                }
             } catch (Exception ex) {
                 throw new InvalidOperationException(ex);
             }
-        }else{
-            throw new UnsupportedOperationException("Not supported decoding.");
+        } else {
+            if(Log.TRACE.isDebugEnabled()){
+                Log.TRACE.debug("未找到标准实体内容解码器，请自行解码。");
+            }
+            //throw new UnsupportedOperationException("Not supported decoding."+headers.get("Content-Type").text());
         }
     }
-    
+
     @Override
     public HttpVersion getVersion() {
         return version;
@@ -187,30 +207,111 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
     @Override
     public boolean canLoadEntityBody() {
         pre();
-        return hasEntityBody && !decodeFlag.get();
+        return hasEntityBody && !loadedFlag.get();
     }
 
     @Override
     public void loadEntityBody() throws InvalidOperationException {
-        if (!canLoadEntityBody() || loadedFlag.get()) {
+        if (!canLoadEntityBody()) {
             return;
         }
-        
-        if(out==null){
-            out=new TempOutputStream();
+
+        if (out == null) {
+            out = new TempOutputStream();
+        }
+        loadBuffer.set(context.keepBuffer);
+        //writeEntityBody(context.keepBuffer);
+        ByteBuffer buffer=null;
+        if (!loadedFlag.get() && loadBuffer.get() == null) {
+            try {
+                //lock.lock();
+                readLock.acquire();
+                this.context.channel().read();
+            } catch (Exception ex) {
+                throw new InvalidOperationException(ex);
+            }
         }
         
-        writeEntityBody(context.keepBuffer);
+        while (!loadedFlag.get()) {//
+//            if (loadBuffer.get() == null) {
+//                synchronized (loadBuffer) {
+//                    try {
+//                        Thread.yield();
+//                        loadBuffer.wait(1000 * 60);//TODO:等待超时？ 大文件？
+//                    } catch (InterruptedException ex) {
+//                        this.context.channel().close();
+//                        throw new InvalidOperationException(ex);
+//                    }
+//                }
+//            }
+            
+            try {
+                //System.out.println("in2");
+                if(readLock.tryAcquire(5, TimeUnit.SECONDS)){
+                    if(loadBuffer.get()==null){
+                        Thread.yield();
+                        continue;
+                    }else{
+                        //lock.unlock();
+                        readLock.release();
+                        buffer = loadBuffer.getAndSet(null);
+                    }
+                }else{
+                    this.context.channel().close();
+                    throw new InvalidOperationException("等待数据上传超时。");
+                }
+            } catch (InterruptedException ex) {
+                this.context.channel().close();
+                throw new InvalidOperationException(ex);
+            }
+            
+            //System.out.println("in3");
+            
+            if (buffer == null) {
+                throw new InvalidOperationException("等待数据上传超时。");
+            }
+            this.remaining -= buffer.remaining();
 
-        synchronized (loadedFlag) {
-            if (!loadedFlag.get()) {
+            try {
+                out.write(buffer);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                throw new InvalidOperationException(ex);
+            }
+
+            //System.out.println("body reading :" + remaining + "/" + contentLength);
+            if (this.remaining > 0) {
+                buffer.clear();
                 try {
-                    loadedFlag.wait();
-                } catch (InterruptedException ex) {
+                    //lock.lock();
+                    readLock.acquire();
+                    this.context.channel().read(buffer);
+                } catch (Exception ex) {
                     throw new InvalidOperationException(ex);
+                }
+            } else {
+                synchronized (loadedFlag) {
+                    loadedFlag.set(true);
+                    loadedFlag.notifyAll();
+                    break;
                 }
             }
         }
+
+        //System.out.println("status:" + loadedFlag.get() + " buf: " + loadBuffer.get());
+//        synchronized (loadedFlag) {
+//            if (!loadedFlag.get()) {
+//                try {
+//                    loadedFlag.wait(1000 * 60 * 5);//TODO:等待超时？ 大文件？
+//                } catch (InterruptedException ex) {
+//                    this.context.channel().close();
+//                    throw new InvalidOperationException(ex);
+//                }
+//                if (!loadedFlag.get()) {
+//                    throw new InvalidOperationException("等待数据上传超时。");
+//                }
+//            }
+//        }
     }
 
     @Override
@@ -243,9 +344,9 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
 
     @Override
     public void notifyDone() {
-        synchronized (loadedFlag) {
-            this.loadedFlag.set(true);
-            this.loadedFlag.notify();
+        synchronized (decodeFlag) {
+            this.decodeFlag.set(true);
+            this.decodeFlag.notifyAll();
         }
     }
 

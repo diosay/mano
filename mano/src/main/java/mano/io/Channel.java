@@ -30,18 +30,6 @@ public interface Channel extends java.nio.channels.Channel{
     boolean isSecure();
 
     /**
-     * 判断通道中是否有挂起的写任务。
-     * @deprecated 
-     */
-    //boolean hasPaddingWrite();
-
-    /**
-     * 判断通道中是否有挂起的读任务。
-     * @deprecated f
-     */
-    //boolean hasPaddingRead();
-
-    /**
      * 提交一个从信道中读取数据的任务到队列中。
      * @throws ChannelException 当前通道已经关闭时触发。
      */
@@ -101,24 +89,6 @@ public interface Channel extends java.nio.channels.Channel{
     void write(byte[] buffer, int offset, int count) throws ChannelException;
 
     void write(String filename, long position, long length) throws ChannelException;
-    
-    /**
-     * @deprecated 
-     * 将缓冲区排入队列以便执行写操作。
-     * <p>
-     * 注：该方法请在具体任务中实现，不要在具体业务代码中调用。
-     * 参见 {@link ChannelTask}。
-     * @param buffer {@link ByteBuffer}
-     * @throws ChannelException 当前通道已经关闭时触发。
-     */
-    //void queueWriteBuffer(ByteBuffer buffer) throws ChannelException;
-
-    /**
-     * 发起关闭当前数据通道。
-     *
-     * @param force {@code true} 表示立即关闭，否则将继续处理相应工作后关闭。
-     */
-    void close(boolean force);
 
     /**
      * 立即关闭当前通道，并触发一次 {@link ChannelHandler#handleDisconnected(mano.io.Channel) } 事件。
@@ -126,5 +96,4 @@ public interface Channel extends java.nio.channels.Channel{
     @Override
     void close();
     
-    void await();
 }

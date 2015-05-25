@@ -131,7 +131,7 @@ public enum HttpMethod implements Comparable<HttpMethod> {
         if (obj == null) {
             return false;
         } else if (obj instanceof HttpMethod) {
-            return name.equals(((HttpMethod) obj).name);
+            return name.equalsIgnoreCase(((HttpMethod) obj).name);
         }
         return name.equals(obj);
     }

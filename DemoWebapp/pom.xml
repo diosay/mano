@@ -31,6 +31,29 @@
 
     <build>
         <plugins>
+            <!--======== MANO WEB应用配置:开始 ========-->
+            <!--manoserver 插件，使用：
+            调试：manoserver:run
+            部署：manoserver:deploy-->   
+            <plugin>
+                <groupId>com.diosay</groupId>
+                <artifactId>maven-manoserver-plugin</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <configuration>
+                    <resourceDirectory>${basedir}/src/main/webapp</resourceDirectory>
+                    <libDirectory>${basedir}/target/build/lib</libDirectory>
+                    <buildDirectory>${build.dir}</buildDirectory>
+                    <serverDirectory>E:\repositories\java\mano\mano-bootstrap\target\build</serverDirectory>
+                </configuration>
+                <!--<executions>
+                    <execution>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>-->
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

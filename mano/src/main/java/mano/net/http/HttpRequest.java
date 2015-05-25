@@ -67,14 +67,28 @@ public abstract class HttpRequest {
     public URL url() {
         if (url == null) {
             String path;
-            if (this.rawUrl().startsWith("/")) {
+            String u = this.rawUrl();
+            int index = u.indexOf("?");
+            if (index > 0) {
+                u = u.substring(0, index);
+            }
+            if (u.startsWith("/")) {
                 path = this.isSecure() ? "https://" : "http://";
                 path += this.headers().get("host").value();
-                path += this.rawUrl();//TODO:解码
+                path += u;//TODO:解码
             } else {
-                path = this.rawUrl();
+                path = u;
             }
-
+            String qs = "";
+            for (Map.Entry<String, String> item : query().entrySet()) {
+                if (!"".equals(qs)) {
+                    qs += "&";
+                }
+                qs += item.getKey() + "=" + item.getValue();
+            }
+            if(!"".equals(qs)){
+                path+="?"+qs;
+            }
             try {
                 url = new URL(path);
             } catch (MalformedURLException e) {
@@ -99,7 +113,11 @@ public abstract class HttpRequest {
     public Map<String, String> query() {
         if (query == null) {
             query = new NameValueCollection<>();
-            HttpUtil.queryStringToMap(url.getQuery(), query);
+            String u = this.rawUrl();
+            int index = u.indexOf("?");
+            if (index > 0) {
+                HttpUtil.queryStringToMap(u.substring(index), query);
+            }
         }
         return query;
     }
@@ -123,6 +141,10 @@ public abstract class HttpRequest {
     public abstract Map<String, HttpPostFile> files();
     private HttpCookieCollection cookies;
 
+    /**
+     * @deprecated 
+     * @return 
+     */
     public HttpRequestCookie getCookie() {
         if (cookies == null) {
             cookies = new HttpCookieCollection();
@@ -145,6 +167,28 @@ public abstract class HttpRequest {
         return cookies;
     }
 
+    public HttpRequestCookie cookies() {
+        if (cookies == null) {
+            cookies = new HttpCookieCollection();
+            String str = null;
+            if (this.headers().containsKey("Cookie")) {
+                str = this.headers().get("Cookie").text();
+            }
+            if (str == null || "".equals(str)) {
+                return cookies;
+            }
+            int index;
+            for (String item : Utility.split(str, ";", true)) {
+                index = item.indexOf("=");
+                if (index < 1) {
+                    continue;
+                }
+                cookies.set(item.substring(0, index), item.substring(index + 1));
+            }
+        }
+        return cookies;
+    }
+    
     /**
      * 获取一个值，指示 HTTP 连接是否使用安全套接字（即 HTTPS）。
      *
@@ -177,7 +221,7 @@ public abstract class HttpRequest {
      * 强制终止基础 TCP 连接，这会导致任何显著的 I/O 失败。
      */
     public abstract void Abort();
-    
+
     public abstract InputStream getEntityBodyStream() throws IOException;
-    
+
 }

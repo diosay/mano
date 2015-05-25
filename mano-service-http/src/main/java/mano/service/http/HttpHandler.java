@@ -46,7 +46,6 @@ public class HttpHandler implements ChannelHandler {
 
     @Override
     public void handleClosed(ChannelContext context, ChannelHandlerChain chain) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
@@ -57,6 +56,7 @@ public class HttpHandler implements ChannelHandler {
         }
         if (ctx.step == HttpContextImpl.STEP_REQUEST_LINE || ctx.step == HttpContextImpl.STEP_HEADERS) {
 
+            //long a=System.currentTimeMillis();
             byte[] array;
             int offset;
             int length;
@@ -75,6 +75,7 @@ public class HttpHandler implements ChannelHandler {
             int index;
             int len;
             String line;
+            //long b=System.currentTimeMillis();
             do {
                 index = mano.io.BufferUtil.bytesIndexOf(array, offset, length, BufferUtil.CRLF);
                 if (index >= 0) {
@@ -97,7 +98,10 @@ public class HttpHandler implements ChannelHandler {
                         } else {
                             context.freeBuffer(buffer);
                         }
+                        //long c=System.currentTimeMillis();
                         ctx.handleRequest();
+                        //long d=System.currentTimeMillis();
+                        //System.out.println("a:"+a+" b:"+b+" c:"+c+" d:"+d);
                         break;
                     } else {
                         ctx.request.headers.put(mano.net.http.HttpHeader.prase(line));
@@ -130,7 +134,9 @@ public class HttpHandler implements ChannelHandler {
     public void handleOutbound(ChannelContext context, ChannelHandlerChain chain, ByteBuffer buffer) {
         try {
             while (buffer.hasRemaining()) {
-                context.send(buffer);
+                if(context.send(buffer)<0){
+                    throw new IOException("远程客户端连接中断。");//An established connection was aborted by the software in your host machine
+                }
             }
         } catch (IOException ex) {
             context.handleError(ex);

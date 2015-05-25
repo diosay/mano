@@ -6,18 +6,28 @@
 package mano.service.http;
 
 import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import mano.Action;
+import mano.caching.CacheEntry;
+import mano.caching.HashCacheProvider;
 import mano.net.http.HttpModuleSettings;
 import mano.io.ChannelHandler;
 import mano.io.ChannelListener;
 import mano.io.ChannelListenerContext;
-import mano.service.Service;
+import mano.logging.Log;
+import mano.runtime.AbstractService;
+import mano.runtime.RuntimeClassLoader;
+import mano.runtime.Service;
 import mano.util.NameValueCollection;
+import mano.util.ScheduleTask;
 import mano.util.ThreadPool;
+import mano.util.Utility;
 import mano.util.xml.XmlException;
 import mano.util.xml.XmlHelper;
+import mano.web.HttpSession;
 import mano.web.WebApplication;
 import mano.web.WebApplicationStartupInfo;
 import org.w3c.dom.NamedNodeMap;
@@ -28,13 +38,15 @@ import org.w3c.dom.NodeList;
  *
  * @author sixmoon
  */
-public class HttpService extends Service {
+public class HttpService extends AbstractService {
 
     private String serviceName;
     ChannelListenerContext context;
     NameValueCollection<WebApplicationStartupInfo> appInfos;
     WebApplicationStartupInfo machine;
-
+    HashCacheProvider sessionProvider;
+    long checkSessionTime = 0;
+    RuntimeClassLoader loader;
     public static final String REQUEST_HANDLER_PROVIDER_KEY = "REQUEST_HANDLER_PROVIDER_KEY";
 
     @Override
@@ -43,8 +55,29 @@ public class HttpService extends Service {
     }
 
     @Override
+    public Service setProperty(String key, Object value) {
+        super.setProperty(key, value);
+        if (Service.PROP_CLASS_LOADER.equalsIgnoreCase(key)) {
+            loader = (RuntimeClassLoader) value;
+        }
+
+        return this;
+    }
+
+    public String getPropertyStringValue(String key) {
+        Object val = this.getProperty(key, null);
+        if (val == null) {
+            return null;
+        }
+        return val.toString().trim();
+    }
+
+    @Override
     protected void onInit() throws Exception {
-        serviceName = this.getContext().getProperty("service.name");
+        if (loader == null) {
+            throw new NullPointerException("unset class loader , KEY:" + Service.PROP_CLASS_LOADER);
+        }
+        serviceName = getPropertyStringValue("service.name");
         context = new ChannelListenerContext(ThreadPool.getService());
         context.listenerClosedEvent().add((sender, e) -> {
             if (context.size() == 0) {
@@ -53,56 +86,166 @@ public class HttpService extends Service {
         });
 
         machine = new WebApplicationStartupInfo();
-        machine.serverPath=this.getContext().getProperty("mano.dir");
+        machine.version = "ManoServer/1.4";
+        machine.serverPath = System.getProperty("mano.dir");
         appInfos = new NameValueCollection<>();
-        configure(this.getContext().getProperty(SERVICE_CONFIG_KEY, false));
+        configure(getPropertyStringValue(Service.PROP_CONFIG_FILE));
+        
+        //基于内存的session
+        this.sessionProvider = new HashCacheProvider();
+        Action<CacheEntry> removeExpiredSession = (entry) -> {
+            if (entry.isExpired()) {
+                sessionProvider.remove(entry.getKey());
+            }
+        };
+        ScheduleTask.register((ctime) -> {
+            if (ctime - checkSessionTime >= 300000) {//                
+                checkSessionTime = ctime;
+                sessionProvider.forEach(removeExpiredSession);
+            }
+            return !isRunning();
+        });
 
-        HttpRequestHandlerAdapter adapter = (ctx,eh) -> {
+        
+        HttpRequestHandlerAdapter adapter = (ctx, eh) -> {
             context.getExecutor().execute(() -> {
-                try{
-                String host = ctx.getRequest().headers().get("Host").value();
-                WebApplicationStartupInfo info = null;
-                for (WebApplicationStartupInfo i : appInfos.values()) {
-                    if (i.matchHost(host)) {
-                        info = i;
-                        break;
+                long begin=System.currentTimeMillis();
+                String oname=Thread.currentThread().getName();
+                Thread.currentThread().setName("HTTP Request Worker");
+                try {
+                    String host = ctx.getRequest().headers().get("Host").value();
+                    WebApplicationStartupInfo info = null;
+                    for (WebApplicationStartupInfo i : appInfos.values()) {
+                        if (i.matchHost(host)) {
+                            info = i;
+                            break;
+                        }
                     }
-                }
-                if (info == null) {
-                    info = appInfos.get("*");
-                }
-                WebApplication app = info == null ? null : info.getInstance();
-                if(app!=null){
-                    ctx.server=app.getServer();
-                    app.processRequest(ctx);
-                }else{
-                    throw new java.lang.IllegalStateException("未找到应用");
-                }
-                }catch(Throwable t){
+                    if (info == null) {
+                        info = appInfos.get("*");
+                    }
+                    WebApplication app = info == null ? null : info.getInstance();
+                    if (app != null) {
+                        ctx.server = app.getServer();
+                        ctx.app = app;
+                        ctx.session = HttpSession.getSession(ctx.request.getCookie().get(HttpSession.COOKIE_KEY), sessionProvider);
+                        if (ctx.session.isNewSession()) {
+                            ctx.response.getCookie().set(HttpSession.COOKIE_KEY, ctx.session.getSessionId(), 0, "/", null, false, false);
+                        }
+                        ctx.response.setHeader("Server", ctx.server.getVersion());
+                        app.processRequest(ctx);
+                    } else {
+                        throw new java.lang.IllegalStateException("未找到应用");
+                    }
+                } catch (Throwable t) {
                     eh.handleError(t);
+                }finally{
+                    Thread.currentThread().setName(oname);
                 }
+//                if (Log.TRACE.isTraceEnabled()) {
+//                    Log.TRACE.trace("Request("+ctx.getRequestId()+") handing done,total times:" + (System.currentTimeMillis() - begin) + "ms");
+//                }
             });
         };
         context.items().put(REQUEST_HANDLER_PROVIDER_KEY, adapter);
-
-        System.out.println("HTTP OK:" + this.getContext().getProperty("config.dir"));
-
-        DeployWarApp dwa = new DeployWarApp();
-
-        dwa.warFile = new File("E:\\repositories\\java\\mano\\DemoWebapp\\target\\DemoWebapp-1.0-SNAPSHOT.war");
-
     }
 
-    class DeployWarApp {
-
-        public String targetPath;
-        public File warFile;
-
-        //http://blog.163.com/abkiss@126/blog/static/32594100201352454017645/
-        public void deploy() {
-
+    boolean getBoolean(Node node, boolean def) {
+        if (node == null) {
+            return def;
         }
+        try {
+            return Boolean.parseBoolean(node.getNodeValue());
+        } catch (Throwable t) {
+            return def;
+        }
+    }
 
+    void configureDependency(XmlHelper helper, Node root, RuntimeClassLoader loader, Map... props) throws XmlException {
+        Node node, tmp, attr, node2;
+        NamedNodeMap attrs;
+        NodeList nodes;
+        String key, value;
+        StringBuilder sb;
+        nodes = helper.selectNodes(root, "dependency/path");
+        if (nodes != null) {
+            //List<String> list=new ArrayList<>();
+            for (int i = 0; i < nodes.getLength(); i++) {
+                node = nodes.item(i);
+                tmp = node.getAttributes().getNamedItem("type");
+                if (tmp == null) {
+                    throw new NoSuchElementException("dependency/path not define [type] attribute.");
+                }
+                key = tmp.getNodeValue();
+                if (key == null || "".equals(key)) {
+                    throw new NoSuchElementException("Path type cannot be empty.");
+                }
+
+                value = node.getTextContent();
+                if (value == null || "".equals(value)) {
+                    continue;
+                }
+                for (Map prop : props) {
+                    try {
+                        value = Utility.replaceMarkup(new StringBuilder(value), null, prop).toString();
+                        break;
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                    }
+                }
+                if ("jar".equalsIgnoreCase(key)) {
+                    loader.addJars(getBoolean(node.getAttributes().getNamedItem("recursive"), false), value);
+                } else if ("classes".equalsIgnoreCase(key)) {
+                    loader.addJars(value);
+                } else if ("url".equalsIgnoreCase(key)) {
+                    try {
+                        loader.AddUrl(value);
+                    } catch (URISyntaxException | MalformedURLException ex) {
+                        throw new NoSuchElementException("Path value cannot be to a URL." + ex.getMessage());
+                    }
+                } else {
+                    throw new NoSuchElementException("Path type unsupport:" + key);
+                }
+            }
+        }
+    }
+
+    void configureProp(XmlHelper helper, Node root, Map coll, Map... props) throws XmlException {
+        Node node, tmp, attr, node2;
+        NamedNodeMap attrs;
+        NodeList nodes;
+        String key, value;
+        StringBuilder sb;
+        nodes = helper.selectNodes(root, "settings/property");
+        if (nodes != null) {
+            for (int i = 0; i < nodes.getLength(); i++) {
+                node = nodes.item(i);
+                attr = node.getAttributes().getNamedItem("name");
+                if (attr == null) {
+                    throw new NoSuchElementException("Found property node,But not define [name] attribute.");
+                }
+                key = attr.getNodeValue();
+                if (key == null || "".equals(key)) {
+                    throw new NoSuchElementException("Property name cannot be empty");
+                }
+                value = node.getNodeValue();
+                if (value == null) {
+                    value = node.getTextContent();
+                }
+                if (value == null || "".equals(value)) {
+                    throw new NoSuchElementException("Property value cannot be empty");
+                }
+                for (Map prop : props) {
+                    try {
+                        value = Utility.replaceMarkup(new StringBuilder(value), null, prop).toString();
+                        break;
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                    }
+                }
+                coll.put(key, value);
+            }
+        }
     }
 
     //@GuardedBy("this")
@@ -115,7 +258,7 @@ public class HttpService extends Service {
         StringBuilder sb;
         String s;
         //解析监听配置
-        root = helper.selectNode("//listeners");
+        root = helper.selectNode("/service/listeners");
         if (root == null) {
             throw new NoSuchElementException("Not define [listening] node. config file:" + path);
         }
@@ -135,9 +278,9 @@ public class HttpService extends Service {
                 if (tmp == null) {
                     throw new NoSuchElementException("Undefined [class] attribute.");
                 }
-                clazz = this.getContext().loadClass(tmp.getNodeValue());
+                clazz = loader.loadClass(tmp.getNodeValue());
                 if (ChannelListener.class.isAssignableFrom(clazz)) {
-                    listener = ChannelListener.class.cast(this.getContext().newInstance(clazz));
+                    listener = ChannelListener.class.cast(loader.newInstance(clazz));
                 } else {
                     throw new ClassCastException("Configuration listener.class must be a subclass of ChannelListener:" + tmp.getNodeValue());
                 }
@@ -145,7 +288,13 @@ public class HttpService extends Service {
                 if (tmp == null) {
                     throw new NoSuchElementException("Undefined [address] attribute.");
                 }
-                listener.bind(tmp.getNodeValue(), 100);
+                s = tmp.getNodeValue();
+                tmp = node.getAttributes().getNamedItem("backlog");
+                int backlog = 128;
+                if (tmp != null) {
+                    backlog = Integer.parseInt(tmp.getNodeValue());
+                }
+                listener.bind(s, backlog);
                 listener.setContext(context);
                 nodes2 = helper.selectNodes(node, "handler");
                 if (nodes2 != null) {
@@ -155,9 +304,9 @@ public class HttpService extends Service {
                         if (tmp == null) {
                             throw new NoSuchElementException("Undefined [class] attribute.");
                         }
-                        clazz = this.getContext().loadClass(tmp.getNodeValue());
+                        clazz = loader.loadClass(tmp.getNodeValue());
                         if (ChannelHandler.class.isAssignableFrom(clazz)) {
-                            handler = ChannelHandler.class.cast(this.getContext().newInstance(clazz));
+                            handler = ChannelHandler.class.cast(loader.newInstance(clazz));
                         } else {
                             throw new ClassCastException("Configuration handler.class must be a subclass of ChannelHandler: " + tmp.getNodeValue());
                         }
@@ -181,13 +330,14 @@ public class HttpService extends Service {
         }
 
         //解析默认应用配置
-        root = helper.selectNode("//default");
+        root = helper.selectNode("/service/default");
         if (root == null) {
             throw new NoSuchElementException("Not define [default] node. config file:" + path);
         }
 
-        configApp(machine, helper, root, true);//this.getContext().getProperty("app.config.dir", false)
-        File configFolder = new File("E:\\repositories\\java\\mano\\mano-bootstrap\\src\\main\\resources\\webapps");
+        configApp(machine, helper, root, true);//"E:\\repositories\\java\\mano\\mano-bootstrap\\src\\main\\resources\\webapps"
+        File configFolder = new File(getPropertyStringValue("app.config.dir"));
+        //configFolder = new File("E:\\repositories\\java\\mano\\mano-bootstrap\\src\\main\\resources\\webapps");
         if (configFolder.exists() && configFolder.isDirectory()) {
             File[] xmlFiles = configFolder.listFiles((cfile) -> {
                 return cfile.exists() && cfile.isFile() && cfile.getName().toLowerCase().endsWith(".xml");
@@ -199,18 +349,18 @@ public class HttpService extends Service {
                 XmlHelper chelper = XmlHelper.load(cfile.toString());
                 root = chelper.selectNode("/application");
                 if (root != null) {
-                    node = chelper.selectNode(root,"type");
+                    node = chelper.selectNode(root, "type");
                     String type = node == null ? "" : node.getTextContent().trim().toLowerCase();
                     if ("".equals(type)) {
                         type = "folder";
                     }
-                    node = chelper.selectNode(root,"path");
+                    node = chelper.selectNode(root, "path");
                     String dpath = node == null ? "" : node.getTextContent().trim().toLowerCase();
 
                     if ("war".equalsIgnoreCase(type)) {
-                        node = chelper.selectNode(root,"packageName");
+                        node = chelper.selectNode(root, "packageName");
                         String pname = node == null ? "" : node.getTextContent().trim().toLowerCase();
-                        node = chelper.selectNode(root,"packageTime");
+                        node = chelper.selectNode(root, "packageTime");
                         String ptimes = node == null ? "" : node.getTextContent().trim().toLowerCase();
                         long ptime = "".equals(ptimes) ? 0 : Long.parseLong(ptimes);
 
@@ -245,7 +395,7 @@ public class HttpService extends Service {
                                 if ("".equals(app.name) || appInfos.containsKey(app.name)) {
                                     throw new XmlException("存在多个同名应用：" + app.name);
                                 }
-                                app.service=this;
+                                app.service = this;
                                 appInfos.put(app.name, app);
                             } else {
 
@@ -288,6 +438,21 @@ public class HttpService extends Service {
             info.path = info.settings.getProperty("application.vpath", "/");
             info.type = info.settings.getProperty("application.class", "mano.web.WebAppcation");
 
+            //依赖
+//            nodes = helper.selectNodes(root, "dependency/path");
+//            for (int i = 0; i < nodes.getLength(); i++) {
+//                attrs = nodes.item(i).getAttributes();
+//                try {
+//                    s = attrs.getNamedItem("value").getNodeValue().trim();
+//                } catch (Exception ignored) {
+//                    s = "";
+//                }
+//                //System.out.println("sssssss:"+s);
+//                //s = Utility.replaceMarkup(new StringBuilder(s), null, loader).toString();
+//                if (!"".equals(s) && !info.dependency.contains(s)) {
+//                    info.dependency.add(s);
+//                }
+//            }
         }
 
         node = helper.selectNode(root, "request");
@@ -341,7 +506,7 @@ public class HttpService extends Service {
                 }
             }
             //错误
-            node2 = node = helper.selectNode(node, "errors");
+            node2 = helper.selectNode(node, "errors");
             if (node2 != null) {
                 tmp = node2.getAttributes().getNamedItem("mode");
                 if (tmp != null) {
@@ -375,20 +540,6 @@ public class HttpService extends Service {
                         } catch (Exception ignored) {
                         }
                     }
-                }
-            }
-
-            //依赖
-            nodes = helper.selectNodes(root, "dependency/path");
-            for (int i = 0; i < nodes.getLength(); i++) {
-                attrs = nodes.item(i).getAttributes();
-                try {
-                    s = attrs.getNamedItem("value").getNodeValue().trim();
-                } catch (Exception ignored) {
-                    s = "";
-                }
-                if (!"".equals(s) && !info.dependency.contains(s)) {
-                    info.dependency.add(s);
                 }
             }
 
@@ -433,15 +584,20 @@ public class HttpService extends Service {
 
     @Override
     protected void onStart() throws Exception {
-
         context.getListeners().forEachRemaining(listener -> {
-            listener.run();
+            //listener.run();
+            context.getExecutor().execute(listener);
         });
-
     }
 
     @Override
     protected void onStop() throws Exception {
+
+        for (WebApplicationStartupInfo info : appInfos.values()) {
+            if (info != null && info.app != null) {
+                //info.app.destory();
+            }
+        }
 
     }
 

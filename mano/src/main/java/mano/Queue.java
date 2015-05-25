@@ -11,7 +11,7 @@ package mano;
  * 提供一个比{@link java.util.Queue} 更简结的队列接口。
  * @author sixmoon
  */
-public interface Queue<E> extends Iterable<E> {
+public interface Queue<E> {
     
     /**
      * 返回当前集合的队列总数量。
@@ -41,4 +41,9 @@ public interface Queue<E> extends Iterable<E> {
      */
     E peek();
     
+    /**
+     * 循环并移除，action返回为 true 的对象。
+     * @param action 
+     */
+    void forEachRemove(Callback<? super E,Boolean> action);
 }

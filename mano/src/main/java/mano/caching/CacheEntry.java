@@ -9,8 +9,9 @@ package mano.caching;
 /**
  * 表示一个缓存项。
  * @author jun <jun@diosay.com>
+ * @param <V>
  */
-public interface CacheEntry {
+public interface CacheEntry<V extends Object> {
 
     /**
      * 获取缓存的键。
@@ -22,7 +23,7 @@ public interface CacheEntry {
      * 获取缓存的值。
      * @return 
      */
-    Object getValue();
+    V getValue();
     
     /**
      * 获取最后访问的时间。

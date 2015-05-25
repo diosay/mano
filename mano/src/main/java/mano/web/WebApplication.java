@@ -8,17 +8,12 @@ package mano.web;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import mano.ContextClassLoader;
-import mano.Mano;
 import mano.PropertyContext;
 import mano.net.http.HttpContext;
 import mano.net.http.HttpException;
@@ -26,9 +21,8 @@ import mano.net.http.HttpModule;
 import mano.net.http.HttpModuleSettings;
 import mano.net.http.HttpServer;
 import mano.net.http.HttpStatus;
+import mano.runtime.RuntimeClassLoader;
 import mano.util.Utility;
-import mano.util.logging.ILogger;
-import mano.util.logging.Logger;
 
 /**
  * 定义 Web 应用程序中的所有应用程序对象通用的方法、属性和事件。
@@ -38,27 +32,29 @@ import mano.util.logging.Logger;
 public class WebApplication extends PropertyContext {
 
     private Set<HttpModule> modules;
-    private ContextClassLoader loader;
+    private RuntimeClassLoader loader;
     private WebApplicationStartupInfo startupInfo;
     private final Map<String, Object> items = new ConcurrentHashMap<>();
+    private mano.logging.Logger log;
 
-    public ContextClassLoader getLoader() {
+    public RuntimeClassLoader getLoader() {
         return loader;
     }
 
-    public ILogger getLogger() {
-        return loader.getLogger();
+    public mano.logging.Logger getLogger() {
+        return log;
     }
 
     /**
      * 初始化应用程序。
      *
      * @param info
-     * @param l
+     * @param appLoader
      */
-    final void init(WebApplicationStartupInfo info, ContextClassLoader l) {
+    final void init(WebApplicationStartupInfo info, RuntimeClassLoader appLoader) {
+        log = new mano.logging.Log(info.name);
         startupInfo = info;
-        loader = l;
+        loader = appLoader;
         this.setProperties(info.settings);
         this.onInit();
         modules = new LinkedHashSet<>();
@@ -151,7 +147,6 @@ public class WebApplication extends PropertyContext {
                     p = "/" + p;
                 }
                 for (HttpModule module : modules) {
-
                     if (module.handle(context, p)) {
                         processed = true;
                         break;
@@ -167,12 +162,11 @@ public class WebApplication extends PropertyContext {
             this.onError(context, ex);
         }
         if (!processed) {
-            //context.getSession().get("");
-            //throw new java.lang.RuntimeException(new HttpException(HttpStatus.NotFound, new java.lang.IllegalMonitorStateException("404 Not Found")));
-            this.onError(context, new HttpException(HttpStatus.NotFound, new java.lang.RuntimeException(new HttpException(HttpStatus.NotFound, new java.lang.IllegalMonitorStateException("404 Not Found")))));
+            this.onError(context, new HttpException(HttpStatus.NotFound, "404 Not Found"));
         }
 
         if (!context.isCompleted()) {
+            //System.out.println("help response end:"+Thread.currentThread().getName());
             context.getResponse().end();
         }
     }
@@ -188,7 +182,7 @@ public class WebApplication extends PropertyContext {
             err = new HttpException(HttpStatus.InternalServerError, t);
         }
 
-        ErrorPageGrec gen = new ErrorPageGrec();
+        ErrorPageGenerator gen = new ErrorPageGenerator();
         gen.status = err.getHttpStatus();
         if (gen.genError && gen.status == HttpStatus.InternalServerError) {
             gen.message = err.getCause() != null ? err.getCause().getMessage() : err.getMessage();
@@ -197,7 +191,8 @@ public class WebApplication extends PropertyContext {
             }
         } else {
             gen.genError = false;
-            gen.message = "该页面遇到某些问题，不能正常访问，请检查输入项确保请求地址或其它是合法的并重试。<br>如需了解更多细节请联系管理员。";
+            //gen.message = "该页面遇到某些问题，不能正常访问，请检查输入项确保请求地址或其它是合法的并重试。<br>如需了解更多细节请联系管理员。";
+            gen.message = "Problem accessing <b>" + context.getRequest().rawUrl() + "</b>. <br><b>Try the following:</b>:<ul><li>Check your spelling is correct and try again.</li><li>Contact to administrator and report this problem.</li></ul>";
         }
         try {
             context.getResponse().setHeader("Connection", "close");
@@ -208,95 +203,6 @@ public class WebApplication extends PropertyContext {
 
         context.getResponse().write(gen.gen(err.getCause()));
         context.getResponse().end();
-    }
-
-    private void printRoot(StringBuilder sb, Throwable t) {
-        if (t == null) {
-            return;
-        }
-        sb.append("<b>root</b><p><pre>");
-        StringWriter sw = new StringWriter();
-        try (PrintWriter pw = new PrintWriter(sw)) {
-            pw.println();
-            t.printStackTrace(pw);
-        }
-        sb.append(sw.toString());
-        sb.append("</pre></p>");
-        printRoot(sb, t.getCause());
-    }
-
-    protected void onError2(HttpContext context, Throwable t) {
-        StringBuilder sb = new StringBuilder();
-        if (t instanceof HttpException) {
-            HttpException ex = (HttpException) t;
-            if (!context.getResponse().headerSent()) {
-                sb.append("<html><head><title>")
-                        .append(ex.getHttpStatus().getStatus())
-                        .append(" Error")
-                        .append("</title></head><body>");
-                context.getResponse().status(ex.getHttpStatus().getStatus(), ex.getHttpStatus().getDescription());
-            }
-            if (ex.getMessage() != null) {
-                sb.append("<b>message</b><u>")
-                        .append(ex.getMessage())
-                        .append("</u>");
-            }
-            if (ex.getCause() != null) {
-                sb.append("<b>exception</b><p><pre>");
-                StringWriter sw = new StringWriter();
-                try (PrintWriter pw = new PrintWriter(sw)) {
-                    pw.println();
-                    ex.getCause().printStackTrace(pw);
-                }
-                sb.append(sw.toString());
-                sb.append("</pre></p>");
-                printRoot(sb, ex.getCause().getCause());
-            }
-            if (!context.getResponse().headerSent()) {
-                sb.append("<hr>")
-                        .append(context.getServer().getVersion());
-            }
-        } else {
-            if (!context.getResponse().headerSent()) {
-                sb.append("<html><head><title>")
-                        .append(HttpStatus.InternalServerError.getStatus())
-                        .append(" Error")
-                        .append("</title></head><body>");
-                context.getResponse().status(HttpStatus.InternalServerError.getStatus(), HttpStatus.InternalServerError.getDescription());
-            }
-            if (t.getMessage() != null) {
-                sb.append("<b>message</b><u>")
-                        .append(t.getMessage())
-                        .append("</u>");
-            }
-            sb.append("<b>exception</b><p><pre>");
-            StringWriter sw = new StringWriter();
-            try (PrintWriter pw = new PrintWriter(sw)) {
-                pw.println();
-                t.printStackTrace(pw);
-            }
-            sb.append(sw.toString());
-            sb.append("</pre></p>");
-            printRoot(sb, t.getCause());
-            if (!context.getResponse().headerSent()) {
-                sb.append("<hr>")
-                        .append(context.getServer().getVersion());
-            }
-        }
-        if (!context.getResponse().headerSent()) {
-
-        }
-        try {
-            context.getResponse().setHeader("Connection", "close");
-        } catch (Exception e) {
-            //ignored
-        }
-
-        try {
-            context.getResponse().write(sb.toString());
-        } catch (Exception e) {
-            //ignored
-        }
     }
 
     protected void onDestory() {
@@ -338,36 +244,7 @@ public class WebApplication extends PropertyContext {
         handlers.add(type);
     }
 
-    /**
-     * 启动调试服务
-     *
-     * @param args
-     */
-    protected static void startDebugServer(ServerStartupArgs args) {
-        try {
-
-            Mano.setProperty("manoserver.testing.test_webapp.config_file", args.webappDirectory);
-            Mano.setProperty("manoserver.testing.test_webapp.ext_dependency", args.libDirectory);
-
-            ContextClassLoader loader = new ContextClassLoader(null, new URL[0], args.loader);
-            loader.register(Utility.toPath(args.serverDirectory, "bin").toString());
-            loader.register(Utility.toPath(args.serverDirectory, "lib").toString());
-            Class<?> instance = loader.loadClass("com.diosay.mano.server.Bootstrap");
-
-            Method startup = instance.getDeclaredMethod("debugStart", String.class, String.class, ContextClassLoader.class);
-            if (startup == null) {
-
-            }
-            startup.setAccessible(true);
-
-            startup.invoke(null, Utility.toPath(args.serverDirectory, "conf\\server.xml").toString(), args.serverDirectory, loader);
-
-        } catch (Throwable ex) {
-            ex.printStackTrace(System.err);
-        }
-    }
-
-    class ErrorPageGrec {
+    private class ErrorPageGenerator {
 
         //public String title;
         public String message;
@@ -415,7 +292,7 @@ public class WebApplication extends PropertyContext {
             }
 
             sb.append("<hr>");
-            sb.append("<h3 style=\"font-size: 12px;\">DIOSAY MANO(HTTP Server)/0.4beta</h3>");
+            sb.append("<h3 style=\"font-size: 12px;\">DIOSAY MANO(HTTP Server)/1.4.0-BETA</h3>");
             sb.append("</body></html>");
             return sb;
         }

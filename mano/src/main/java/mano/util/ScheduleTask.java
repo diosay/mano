@@ -1,6 +1,8 @@
 
 package mano.util;
 
+import java.util.List;
+
 /**
  * 定义一个由{@link ThreadPool}自动调度的短时任务。
  * @author jun
@@ -17,6 +19,8 @@ public interface ScheduleTask {
      */
     boolean execute(long millis);
     
+    static final List<ScheduleTask> scheduledTasks = new java.util.concurrent.CopyOnWriteArrayList<>();
+    
     /**
      * 注册一个任务到调度上下文中。
      * @param task 任务。
@@ -27,9 +31,10 @@ public interface ScheduleTask {
         if(task==null){
             throw new NullPointerException("task");
         }
-        else if(ThreadPool.scheduledTasks.contains(task)){
+        else if(scheduledTasks.contains(task)){
             throw new IllegalArgumentException("This task already exists in scheduled's context.");
         }
-        ThreadPool.scheduledTasks.add(task);
+        
+        scheduledTasks.add(task);
     }
 }

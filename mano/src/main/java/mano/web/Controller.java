@@ -6,11 +6,13 @@
  */
 package mano.web;
 
-import mano.ContextClassLoader;
+import java.util.Map;
 import mano.data.json.*;
 import mano.net.http.HttpContext;
 import mano.net.http.HttpPostFile;
-import mano.util.logging.ILogger;
+import mano.logging.Logger;
+import mano.net.http.HttpMethod;
+import mano.runtime.RuntimeClassLoader;
 
 /**
  * 封装了一组 action 与常用方法的控制器抽象类。
@@ -76,6 +78,14 @@ public abstract class Controller implements ActionHandler {
     }
 
     /**
+     * 获取已设置的实图数据。
+     * @return 
+     */
+    public Iterable<Map.Entry<String, Object>> getViewData(){
+        return this.service.getEntries();
+    }
+    
+    /**
      * 根据name获取一个当前请求所关联的参数。
      *
      * @param name
@@ -134,7 +144,6 @@ public abstract class Controller implements ActionHandler {
             getLogger().debug(ex);
         }
         return null;
-
     }
 
     /**
@@ -254,7 +263,7 @@ public abstract class Controller implements ActionHandler {
      *
      * @return
      */
-    public ILogger getLogger() {
+    public Logger getLogger() {
         return this.getApplication().getLogger();
     }
 
@@ -263,8 +272,20 @@ public abstract class Controller implements ActionHandler {
      *
      * @return
      */
-    public ContextClassLoader getLoader() {
+    public RuntimeClassLoader getLoader() {
         return getApplication().getLoader();
+    }
+    
+    protected boolean isPost(){
+        return isMethod(HttpMethod.POST);
+    }
+    
+    protected boolean isGet(){
+        return isMethod(HttpMethod.GET);
+    }
+    
+    protected boolean isMethod(HttpMethod method){
+        return this.getContext().getRequest().getMethod().equalWith(method);
     }
 
 }

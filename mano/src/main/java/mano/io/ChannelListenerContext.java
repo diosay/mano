@@ -31,17 +31,16 @@ public class ChannelListenerContext {
     private ExecutorService executor;
     private ByteBufferPool bufferPool;
     private EventListener.EventListenerHandle<ChannelListener, EventArgs> listenerClosedEventHandle;
-    private Pool<ChannelTaskInternal> taskPool = new CachedObjectRecyler<ChannelTaskInternal>() {
-        @Override
-        protected ChannelTaskInternal createNew() {
-            return new ChannelTaskInternal();
-        }
-    };
-    private BufferManager bufferManager;
+//    private Pool<ChannelTaskInternal> taskPool = new CachedObjectRecyler<ChannelTaskInternal>() {
+//        @Override
+//        protected ChannelTaskInternal createNew() {
+//            return new ChannelTaskInternal();
+//        }
+//    };
 
     public ChannelListenerContext(ExecutorService executor) {
         this.executor = executor;
-        this.bufferPool = new ByteBufferPool(4096);
+        this.bufferPool = new ByteBufferPool(1024*8);
         listenerClosedEventHandle = EventListener.create();
         //bufferManager=new BufferManager();
     }
