@@ -97,6 +97,10 @@ public class WebApplication extends PropertyContext {
         return this.startupInfo.getServerInstance().getBaseDirectory();
     }
 
+    public final Map<String, Object> items(){
+        return items;
+    }
+    
     /**
      * 获取一个用于在应用程序各 HttpContext 之间交互的对象。
      *
@@ -232,6 +236,10 @@ public class WebApplication extends PropertyContext {
      */
     public URL[] getActionHandlerJarUrls() {
         return this.getLoader().getURLs();
+    }
+    
+    public String[] getActionNamespaces(){
+        return null;
     }
 
     private ArrayList<Class<? extends ActionHandler>> handlers = new ArrayList<>();

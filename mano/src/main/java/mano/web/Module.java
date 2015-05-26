@@ -113,7 +113,48 @@ public abstract class Module {
     }
     
     
-    
+    /**
+     * 设置一个默认 视图结果。
+     */
+    protected ActionResult view() {
+        return view(null, null);
+    }
+
+    protected ActionResult view(String action) {
+        return view(action, null);
+    }
+
+    protected ActionResult view(String action, String controller) {
+        if (action != null) {
+            context.setAction(action);
+        }
+        if (controller != null) {
+            context.setController(controller);
+        }
+        context.setResult(new ViewResult());
+        return context.getResult();
+    }
+
+    protected ActionResult template(String path) {
+        context.setPath(path);
+        context.setResult(new ViewResult());
+        return context.getResult();
+    }
+
+    protected void text(String content) {
+        this.text(content, "text/plain;charset=utf-8");
+    }
+
+    /**
+     * 将一个纯文本
+     *
+     * @param content
+     * @param contentType
+     */
+    protected void text(String content, String contentType) {
+        context().getResponse().setContentType(contentType);
+        context().getResponse().write(content);
+    }
     
     void t(){
         
