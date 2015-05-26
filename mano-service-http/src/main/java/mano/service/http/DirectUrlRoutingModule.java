@@ -3,6 +3,7 @@ package mano.service.http;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Properties;
 import mano.net.http.HttpContext;
 import mano.net.http.HttpModule;
@@ -53,11 +54,11 @@ public class DirectUrlRoutingModule implements HttpModule {
             return false;
         }
         
-        String[] segments=Utility.split(tryPath, "/", true);
+        String[] segments=Utility.split(tryPath.toLowerCase(), "/", true);
         if(segments.length>=2){
-            return resolveAndExecute(context,segments[0],segments[1],segments);//TODO:从配置加载
+            return resolveAndExecute(context,segments[0],segments[1],Arrays.copyOfRange(segments, 2, segments.length-2));//TODO:从配置加载
         }else if(segments.length==1){
-            return resolveAndExecute(context,segments[0],"index",segments);//TODO:从配置加载
+            return resolveAndExecute(context,segments[0],"index",Arrays.copyOfRange(segments, 1, segments.length-1));//TODO:从配置加载
         }else{
             return resolveAndExecute(context,"home","index",segments);//TODO:从配置加载
         }
@@ -137,8 +138,12 @@ public class DirectUrlRoutingModule implements HttpModule {
         actionMethod.setAccessible(true);
         
         ViewContext vc=viewEngine.createContext(context);
-        vc.setController(module);
-        vc.setAction(action.toLowerCase());
+        vc.setEngine(viewEngine);
+        vc.setSegments(segments);
+        //vc.setController(module);
+        //vc.setAction(action.toLowerCase());
+        vc.addRoutePath(module);
+        vc.addRoutePath(action.toLowerCase());
         Module obj=(Module)clazz.newInstance();
         
         //执行过滤器
@@ -159,27 +164,27 @@ public class DirectUrlRoutingModule implements HttpModule {
         Object result=null;
         if(!context.isCompleted()){
         try {
-            result=actionMethod.invoke(obj, null);
+            result=actionMethod.invoke(obj, new Object[0]);
         }catch (InvocationTargetException ex) {
             throw ex.getTargetException()==null?ex:new Exception(ex.getTargetException());
         }}
+        
+        
+        
+        //渲染结果
+        if(result==null){
+            
+        }else if(!context.isCompleted() && result instanceof ActionResult){
+            ((ActionResult)result).execute(vc);
+        }else if(!context.isCompleted()){
+            context.getResponse().write(result);
+        }
         
         //执行过滤器
         for(ActionFilter filter:filters){
             if(context.isCompleted() || !filter.onActionExecuted(vc)){
                 return true;
             }
-        }
-        
-        //渲染结果
-        if(result==null){
-            
-        }else if(!context.isCompleted() && result instanceof ViewResult){
-            ((ViewResult)result).init(viewEngine).execute(vc);
-        }else if(!context.isCompleted() && result instanceof ActionResult){
-            ((ActionResult)result).execute(vc);
-        }else if(!context.isCompleted()){
-            context.getResponse().write(result);
         }
         
         if(!context.isCompleted()){

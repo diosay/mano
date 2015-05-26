@@ -6,6 +6,7 @@
  */
 package mano.web;
 
+import java.util.Map;
 import mano.logging.Logger;
 import mano.net.http.HttpContext;
 import mano.net.http.HttpPostFile;
@@ -156,8 +157,32 @@ public abstract class Module {
         context().getResponse().write(content);
     }
     
-    void t(){
-        
+    /**
+     * 设置用于在当前请求传递的键值。
+     *
+     * @param name
+     * @param value
+     */
+    public void set(String name, Object value) {
+        context.set(name, value);
+    }
+
+    /**
+     * 获取一个值。
+     *
+     * @param name
+     * @return
+     */
+    public Object get(String name) {
+        return context.get(name);
+    }
+
+    /**
+     * 获取已设置的实图数据。
+     * @return 
+     */
+    public Iterable<Map.Entry<String, Object>> getViewData(){
+        return context.getEntries();
     }
     
     

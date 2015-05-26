@@ -573,6 +573,7 @@ public class UrlRoutingModule implements HttpModule {
         ViewContext vc;
         ActionHandler obj = app.getLoader().newInstance(route.clazz);
         vc = viewEngine.createContext(context);
+        vc.setEngine(viewEngine);
         vc.setController(route.controller);
         vc.setAction(route.action);
         obj.init(vc);
@@ -596,9 +597,6 @@ public class UrlRoutingModule implements HttpModule {
         ActionResult result = vc.getResult();
         if (result == null) {
             return true;
-        }
-        if (result instanceof ViewResult) {
-            ((ViewResult) result).init(viewEngine);
         }
 
         result.execute(vc);

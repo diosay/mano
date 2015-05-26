@@ -7,6 +7,9 @@
 package mano.web;
 
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -26,7 +29,8 @@ public class ViewContext {
     private String path;
     private String controller;
     private String action;
-    private Charset encoding=Charset.forName("utf-8");
+    private Charset encoding = Charset.forName("utf-8");
+    private ViewEngine engine;
 
     public ViewContext(HttpContext c) {
         if (c == null) {
@@ -35,37 +39,41 @@ public class ViewContext {
         this.context = c;
         viewbag = new NameValueCollection<>();
     }
-    
+
     /**
      * 设置输出编码。
-     * @param charset 
+     *
+     * @param charset
      */
-    public void setEncoding(Charset charset){
-        if(charset==null){
+    public void setEncoding(Charset charset) {
+        if (charset == null) {
             throw new IllegalArgumentException("charset");
         }
-        this.encoding=charset;
+        this.encoding = charset;
     }
-    
+
     /**
      * 设置输出编码。
-     * @param charset 
+     *
+     * @param charset
      */
-    public void setEncoding(String charset){
+    public void setEncoding(String charset) {
         this.setEncoding(Charset.forName(charset));
     }
-    
+
     /**
      * 获取输出编码。
-     * @return 
+     *
+     * @return
      */
-    public Charset getEncoding(){
+    public Charset getEncoding() {
         return encoding;
     }
 
     /**
      * 设置当前控制器名称。
-     * @param s 
+     *
+     * @param s
      */
     public void setController(String s) {
         controller = s;
@@ -73,7 +81,8 @@ public class ViewContext {
 
     /**
      * 设置当前Action名称。
-     * @param s 
+     *
+     * @param s
      */
     public void setAction(String s) {
         action = s;
@@ -81,7 +90,8 @@ public class ViewContext {
 
     /**
      * 设置
-     * @param s 
+     *
+     * @param s
      */
     public void setPath(String s) {
         path = s;
@@ -152,5 +162,44 @@ public class ViewContext {
      */
     public void setResult(ActionResult r) {
         this.result = r;
+    }
+
+    /**
+     * @return the engine
+     */
+    public ViewEngine getEngine() {
+        return engine;
+    }
+
+    /**
+     * @param engine the engine to set
+     */
+    public void setEngine(ViewEngine engine) {
+        this.engine = engine;
+    }
+    List<String> segments = new ArrayList<>();
+
+    public void setSegments(String... seg) {
+        segments.addAll(Arrays.asList(seg));
+    }
+
+    public List<String> segments() {
+        return segments;
+    }
+
+    public String remainingRoutingPath() {
+        return segments.stream().reduce("/",
+                (result, element)
+                -> result = result + element);
+    }
+    
+    List<String> routePath = new ArrayList<>();
+    
+    public void addRoutePath(String path){
+        routePath.add(path);
+    }
+    
+    public List<String> routePath() {
+        return routePath;
     }
 }
