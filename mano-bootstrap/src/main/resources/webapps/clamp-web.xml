@@ -4,7 +4,7 @@
 -->
 <application>
     <type>folder</type>
-    <path>E:\repositories\java\ifcc\build</path>
+    <path>E:\repositories\view-repo\clamp-webapp</path>
     <packageName></packageName>
     <packageTime>0</packageTime>
     <dependency path=""/>

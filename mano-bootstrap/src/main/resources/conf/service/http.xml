@@ -97,6 +97,17 @@
                 <property name="view.dir">{app.dir}/views</property>
                 <property name="view.engine">mano.service.http.OtplViewEngine</property>
             </add>
+            
+            <add name="direct_url_routing_module" class="mano.service.http.DirectUrlRoutingModule">
+                <property name="def.mime">text/html</property>
+                <property name="def.encoding">utf-8</property>
+                <property name="def.cache.timeout">120000</property>
+                <property name="inf.dir">{app.dir}/WEB-INF</property>
+                <property name="tmp.dir">{inf.dir}/tmp</property>
+                <property name="view.dir">{app.dir}/views</property>
+                <property name="view.engine">mano.service.http.OtplViewEngine</property>
+            </add>
+            
         </modules>
     </default>
     
