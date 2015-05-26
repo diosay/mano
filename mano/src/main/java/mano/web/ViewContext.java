@@ -188,9 +188,9 @@ public class ViewContext {
     }
 
     public String remainingRoutingPath() {
-        return segments.stream().reduce("/",
+        return segments.stream().reduce("",
                 (result, element)
-                -> result = result + element);
+                -> result = result+"/" + element);
     }
     
     List<String> routePath = new ArrayList<>();

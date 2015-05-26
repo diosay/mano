@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import mano.net.http.HttpContext;
 import mano.net.http.HttpModule;
@@ -54,13 +55,14 @@ public class DirectUrlRoutingModule implements HttpModule {
             return false;
         }
         
-        String[] segments=Utility.split(tryPath.toLowerCase(), "/", true);
-        if(segments.length>=2){
-            return resolveAndExecute(context,segments[0],segments[1],Arrays.copyOfRange(segments, 2, segments.length-2));//TODO:从配置加载
-        }else if(segments.length==1){
-            return resolveAndExecute(context,segments[0],"index",Arrays.copyOfRange(segments, 1, segments.length-1));//TODO:从配置加载
+        List<String> segments=new ArrayList<>(Arrays.asList(Utility.split(tryPath.toLowerCase(), "/", true)));
+        if(segments.size()>=2){
+            String t=segments.remove(0);
+            return resolveAndExecute(context,t,segments.remove(0),segments.toArray(new String[0]));//TODO:从配置加载
+        }else if(segments.size()==1){
+            return resolveAndExecute(context,segments.remove(0),"index",segments.toArray(new String[0]));//TODO:从配置加载
         }else{
-            return resolveAndExecute(context,"home","index",segments);//TODO:从配置加载
+            return resolveAndExecute(context,"home","index",segments.toArray(new String[0]));//TODO:从配置加载
         }
     }
 
@@ -131,6 +133,11 @@ public class DirectUrlRoutingModule implements HttpModule {
         //查找与实例化过滤器
         Filter[] tmps = clazz.getAnnotationsByType(Filter.class);
         ArrayList<ActionFilter> filters=new ArrayList<>();
+        for(Filter f:tmps){
+            filters.add(f.value().newInstance());
+        }
+        tmps = actionMethod.getAnnotationsByType(Filter.class);
+        filters=new ArrayList<>();
         for(Filter f:tmps){
             filters.add(f.value().newInstance());
         }

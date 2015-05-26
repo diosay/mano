@@ -28,9 +28,10 @@ public class ViewResult implements ActionResult {
             if (context.routePath().isEmpty()) {
                 path = "~/" + context.getController() + "/" + context.getAction() + ".html";
             } else {
-                path = "~/" + context.routePath().stream().reduce("/",
+                path = context.routePath().stream().reduce("~",
                         (result, element)
-                        -> result = result + element) + ".html";
+                        -> result = result +"/"+ element) + ".html";
+                //System.out.println(""+path);
             }
         }
         
