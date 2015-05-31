@@ -1,5 +1,6 @@
 package mano.service.http;
 
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import mano.logging.Log;
 import mano.net.NioSocketChannelListener;
@@ -7,6 +8,8 @@ import mano.net.http.HttpContext;
 import mano.net.http.HttpRequest;
 import mano.net.http.HttpResponse;
 import mano.net.http.HttpServer;
+import mano.security.Identity;
+import mano.security.Principal;
 import mano.web.HttpSession;
 import mano.web.WebApplication;
 
@@ -43,29 +46,29 @@ public class HttpListener extends NioSocketChannelListener {
 
         @Override
         public void handleError(Throwable cause) {
-            
-            if(Log.TRACE.isDebugEnabled()){
-                    Log.TRACE.debug(cause);
-                }
+
+            if (Log.TRACE.isDebugEnabled()) {
+                Log.TRACE.debug(cause);
+            }
             //Connection reset by peer
-            String msg=cause.getMessage();
-            if(msg!=null){
-                if(msg.toLowerCase().contains("connection reset by peer")){
+            String msg = cause.getMessage();
+            if (msg != null) {
+                if (msg.toLowerCase().contains("connection reset by peer")) {
                     this.close();
                 }
-            }else if(cause instanceof java.nio.channels.CancelledKeyException){
+            } else if (cause instanceof java.nio.channels.CancelledKeyException) {
                 this.close();
             }
-            
-            if (step>=2 && !response.headerSent()) {//TODO:错误处理
+
+            if (step >= 2 && !response.headerSent()) {//TODO:错误处理
                 response.status(400);
                 response.keepAlive = false;
                 response.write("Bad Request (Invalid Hostname)");
                 response.end();
-            } else if(this.isOpen()){
-                
+            } else if (this.isOpen()) {
+
                 this.close();
-                
+
             }
         }
 
@@ -84,10 +87,7 @@ public class HttpListener extends NioSocketChannelListener {
 ////                ex.printStackTrace();
 ////            }
 //            response.end();
-            
-            
-            
-            
+
             /*byte[] hello = ("hello,world " + DateTime.now() + "<hr>" + "URL:" + request.rawUrl()).getBytes();
              StringBuilder sb = new StringBuilder();
              sb.append("HTTP/1.1 200 OK").append("\r\n");
@@ -114,11 +114,11 @@ public class HttpListener extends NioSocketChannelListener {
 
         @Override
         public boolean isCompleted() {
-            if(!isOpen()){
-                this.response.done=true;
+            if (!isOpen()) {
+                this.response.done = true;
                 return true;
             }
-            return  this.response.done;
+            return this.response.done;
         }
 
         @Override
@@ -139,6 +139,11 @@ public class HttpListener extends NioSocketChannelListener {
         @Override
         public HttpSession getSession() {
             return session;
+        }
+
+        @Override
+        public Principal getUser() {
+            return app.getUser(this);
         }
 
     }
