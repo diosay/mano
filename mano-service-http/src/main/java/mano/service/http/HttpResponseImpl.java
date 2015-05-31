@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import mano.ArgumentNullException;
@@ -34,16 +35,17 @@ import mano.service.http.HttpListener.HttpContextImpl;
 class HttpResponseImpl extends HttpResponse {
 
     HttpHeaderCollection headers = new HttpHeaderCollection();
-    private boolean headerSent;
-    private long contentLength;
-    private boolean explicitContentLength;
-    public boolean done;
-    private boolean end;
-    private boolean chunked;
-    private boolean endFlush;
+    private volatile boolean headerSent;
+    private volatile long contentLength = 0;
+    private volatile boolean explicitContentLength;
+    public volatile boolean done;
+    //private boolean end;
+    private volatile boolean chunked;
+    private volatile boolean endFlush;
     private static final String CRLF = "\r\n";
     public boolean keepAlive;
     public HttpContextImpl context;
+    private final ReentrantLock lock = new ReentrantLock();
 
     @Override
     public HttpHeaderCollection headers() {
@@ -81,33 +83,40 @@ class HttpResponseImpl extends HttpResponse {
 
     @Override
     public void write(byte[] buffer, int offset, int count) {
-
-        if (contentBuffer != null) {
-            int len = Math.min(count, contentBuffer.remaining());
-            contentBuffer.put(buffer, offset, len);
-            if (!explicitContentLength) {
-                this.contentLength += len;
-            }
-            if (!contentBuffer.hasRemaining()) {
-                contentBuffer.flip();
-                buffers.add(contentBuffer);
-                contentBuffer = null;
-            }
-            if (len - count < 0) {
-                //TODO:contentBuffer=pool.get();
-                write(buffer, offset + len, count - len);
-                return;
-            }
-        } else {
-            if (!explicitContentLength) {
-                this.contentLength += count;
-            }
-            buffers.add(ByteBuffer.wrap(buffer, offset, count));
+        if(contentLength>=1024*8){
+            this.flush();
         }
-
+        lock.lock();
+        try {
+            if (contentBuffer != null) {
+                int len = Math.min(count, contentBuffer.remaining());
+                contentBuffer.put(buffer, offset, len);
+                if (!explicitContentLength) {
+                    this.contentLength += len;
+                }
+                if (!contentBuffer.hasRemaining()) {
+                    contentBuffer.flip();
+                    buffers.add(contentBuffer);
+                    contentBuffer = null;
+                }
+                if (len - count < 0) {
+                    //TODO:contentBuffer=pool.get();
+                    write(buffer, offset + len, count - len);
+                    return;
+                }
+            } else {
+                if (!explicitContentLength) {
+                    this.contentLength += count;
+                }
+                buffers.add(ByteBuffer.wrap(buffer, offset, count));
+            }
+        } finally {
+            lock.unlock();
+        }
         if (!this.buffering()) {
             this.flush();
         }
+
     }
 
     @Override
@@ -145,79 +154,98 @@ class HttpResponseImpl extends HttpResponse {
         }
     }
 
+    private long getLength(){
+        long len=0;
+        for(ByteBuffer buf:buffers){
+            len+=buf.remaining();
+        }
+        return len;
+    }
+    
     @Override
     public void flush() {
-        if (!headerSent) {
+        lock.lock();
+        try {
+            if (!headerSent) {
+                
 
-            if (!explicitContentLength && !endFlush) {
-                chunked = true;
+                //如果不是显示的长度和最终刷新，则使用块发送
+                if (!explicitContentLength && !endFlush) {
+                    chunked = true;
+                }
+
+                if (!headers.containsKey("Date")) {
+                    this.setHeader("Date", DateTime.now().toGMTString());
+                }
+
+                if (!headers.containsKey("Connection")) {
+                    this.setHeader("Connection", keepAlive ? "keep-alive" : "close");
+                }
+
+                if (!headers.containsKey("Content-Type")) {
+                    this.setHeader("Content-Type", "text/html;charset=utf-8");
+                }
+
+                //如果不是块发送或显示声明长度，则发送长度标头
+                if (!this.chunked) {// && (endFlush || explicitContentLength)
+                    this.setHeader("Content-Length", this.contentLength + "");
+                } else {
+                    this.setHeader("Transfer-Encoding", "chunked");//TODO:重做
+                }
+                headerSent = true;
+                //构造头
+                StringBuilder sb = new StringBuilder();
+                sb.append("HTTP/1.1").append(" ").append(this.status()).append(" ").append(this.statusDescription()).append(CRLF);
+                for (HttpHeader header : headers.values()) {
+                    sb.append(header.name()).append(":").append(header.text()).append(CRLF);
+                }
+                for (HttpCookieCollection.CookieEntry entry : this.cookies().iterator()) {
+                    sb.append("Set-Cookie:").append(entry.toString()).append(CRLF);
+                }
+                sb.append(CRLF);
+                //System.out.println(""+sb);
+                //System.out.println("LEN:"+getLength());
+                send(sb.toString().getBytes(this.charset()));
+
             }
 
-            if (!headers.containsKey("Date")) {
-                this.setHeader("Date", DateTime.now().toGMTString());
-            }
+            if (chunked) {
+                /*if(contentLength==0 && endFlush){
+                 send(String.format("0%s%s", CRLF, CRLF).getBytes(this.charset()));
+                 }else */
+                if (contentLength > 0) {
+                    send(String.format("%s %s", Long.toHexString(contentLength), CRLF).getBytes(this.charset()));
+                    for (ByteBuffer buf : buffers) {
+                        send(buf);
+                    }
+                    buffers.clear();
+                    send(String.format("%s", CRLF).getBytes(this.charset()));
+                }
+                contentLength = 0;
 
-            if (!headers.containsKey("Connection")) {
-                this.setHeader("Connection", keepAlive ? "keep-alive" : "close");
-            }
+                if (endFlush) {
+                    //System.out.println("SEND END CHUNK");
+                    send(String.format("0%s%s", CRLF, CRLF).getBytes(this.charset()));
+                }
 
-            if (!headers.containsKey("Content-Type")) {
-                this.setHeader("Content-Type", "text/html;charset=utf-8");
-            }
-
-            if (!this.chunked || this.endFlush || explicitContentLength) {
-                this.setHeader("Content-Length", this.contentLength + "");
             } else {
-                this.setHeader("Transfer-Encoding", "chunked");
-            }
-            headerSent = true;
-            StringBuilder sb = new StringBuilder();
-            sb.append("HTTP/1.1").append(" ").append(this.status()).append(" ").append(this.statusDescription()).append(CRLF);
-            for (HttpHeader header : headers.values()) {
-                sb.append(header.name()).append(":").append(header.text()).append(CRLF);
-            }
-            for (HttpCookieCollection.CookieEntry entry : this.getCookie().iterator()) {
-                sb.append("Set-Cookie:").append(entry.toString()).append(CRLF);
-            }
-            sb.append(CRLF);
-
-            send(sb.toString().getBytes(this.charset()));
-
-        }
-
-        if (chunked) {
-            /*if(contentLength==0 && endFlush){
-             send(String.format("0%s%s", CRLF, CRLF).getBytes(this.charset()));
-             }else */
-            if (contentLength > 0) {
-                send(String.format("%s %s", Long.toHexString(contentLength), CRLF).getBytes(this.charset()));
                 for (ByteBuffer buf : buffers) {
                     send(buf);
                 }
                 buffers.clear();
-                contentLength = 0;
-                send(String.format("%s", CRLF).getBytes(this.charset()));
             }
 
             if (endFlush) {
-                send(String.format("0%s%s", CRLF, CRLF).getBytes(this.charset()));
+                try {
+                    context.channel().submit(new CloseChannelFuture().fresh());
+                } catch (ChannelException ex) {
+                    context.handleError(ex);
+                } finally {
+                    this.done = true;
+                }
             }
-
-        } else {
-            for (ByteBuffer buf : buffers) {
-                send(buf);
-            }
-            buffers.clear();
-        }
-
-        if (endFlush) {
-            try {
-                context.channel().submit(new CloseChannelFuture().fresh());
-            } catch (ChannelException ex) {
-                context.handleError(ex);
-            } finally {
-                this.done = true;
-            }
+        } finally {
+            lock.unlock();
         }
     }
 

@@ -39,7 +39,7 @@ public class StaticFileModule implements HttpModule {
         }
     }
 
-    private boolean process(HttpContext context, String path, String mime) {
+    public static boolean process(HttpContext context, String path, String mime) {
 
         //context.getApplication().getLogger().debug("process static path:" + path);
 

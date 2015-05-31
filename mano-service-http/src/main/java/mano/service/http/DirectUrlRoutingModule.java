@@ -137,7 +137,6 @@ public class DirectUrlRoutingModule implements HttpModule {
             filters.add(f.value().newInstance());
         }
         tmps = actionMethod.getAnnotationsByType(Filter.class);
-        filters=new ArrayList<>();
         for(Filter f:tmps){
             filters.add(f.value().newInstance());
         }
@@ -173,7 +172,11 @@ public class DirectUrlRoutingModule implements HttpModule {
         try {
             result=actionMethod.invoke(obj, new Object[0]);
         }catch (InvocationTargetException ex) {
-            throw ex.getTargetException()==null?ex:new Exception(ex.getTargetException());
+            Throwable err=ex.getTargetException()==null?ex:ex.getTargetException();
+            if(err instanceof Exception){
+                throw (Exception)err;
+            }
+            throw new Exception(err);
         }}
         
         

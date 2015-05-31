@@ -43,16 +43,26 @@ public class HttpListener extends NioSocketChannelListener {
 
         @Override
         public void handleError(Throwable cause) {
-            cause.printStackTrace();
-            if (step>=2 && !response.headerSent()) {
+            
+            if(Log.TRACE.isDebugEnabled()){
+                    Log.TRACE.debug(cause);
+                }
+            //Connection reset by peer
+            String msg=cause.getMessage();
+            if(msg!=null){
+                if(msg.toLowerCase().contains("connection reset by peer")){
+                    this.close();
+                }
+            }else if(cause instanceof java.nio.channels.CancelledKeyException){
+                this.close();
+            }
+            
+            if (step>=2 && !response.headerSent()) {//TODO:错误处理
                 response.status(400);
                 response.keepAlive = false;
                 response.write("Bad Request (Invalid Hostname)");
                 response.end();
-            } else {
-                if(Log.TRACE.isDebugEnabled()){
-                    Log.TRACE.debug(cause);
-                }
+            } else if(this.isOpen()){
                 
                 this.close();
                 
@@ -104,7 +114,11 @@ public class HttpListener extends NioSocketChannelListener {
 
         @Override
         public boolean isCompleted() {
-            return this.response.done;
+            if(!isOpen()){
+                this.response.done=true;
+                return true;
+            }
+            return  this.response.done;
         }
 
         @Override
