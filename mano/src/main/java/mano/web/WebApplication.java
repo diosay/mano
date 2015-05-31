@@ -7,6 +7,7 @@
 package mano.web;
 
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.ArrayList;
@@ -22,6 +23,8 @@ import mano.net.http.HttpModuleSettings;
 import mano.net.http.HttpServer;
 import mano.net.http.HttpStatus;
 import mano.runtime.RuntimeClassLoader;
+import mano.security.Identity;
+import mano.security.Principal;
 import mano.util.Utility;
 
 /**
@@ -97,10 +100,10 @@ public class WebApplication extends PropertyContext {
         return this.startupInfo.getServerInstance().getBaseDirectory();
     }
 
-    public final Map<String, Object> items(){
+    public final Map<String, Object> items() {
         return items;
     }
-    
+
     /**
      * 获取一个用于在应用程序各 HttpContext 之间交互的对象。
      *
@@ -237,8 +240,8 @@ public class WebApplication extends PropertyContext {
     public URL[] getActionHandlerJarUrls() {
         return this.getLoader().getURLs();
     }
-    
-    public String[] getActionNamespaces(){
+
+    public String[] getActionNamespaces() {
         return null;
     }
 
@@ -307,4 +310,47 @@ public class WebApplication extends PropertyContext {
 
     }
 
+    private static class AnonymousPrincipal implements Principal {
+        
+        Identity id = new Identity() {
+
+            @Override
+            public Serializable getValue() {
+                return "Anonymous";
+            }
+
+            @Override
+            public String getAuthenticationType() {
+                return "default";
+            }
+
+            @Override
+            public boolean isAuthenticated() {
+                return false;
+            }
+
+        };
+
+        @Override
+        public Identity getIdentity() {
+            return id;
+        }
+
+        @Override
+        public boolean isInRole(String role) {
+            return false;
+        }
+    }
+
+    private static final AnonymousPrincipal anonymousPrincipal=new AnonymousPrincipal();
+    
+    /**
+     * 获取与当前应用关联的认证用户。
+     * @param context
+     * @return 
+     */
+    public Principal getUser(HttpContext context){
+        return anonymousPrincipal;
+    }
+    
 }

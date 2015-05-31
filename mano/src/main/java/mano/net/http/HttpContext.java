@@ -6,6 +6,7 @@
  */
 package mano.net.http;
 
+import mano.security.Principal;
 import mano.web.HttpSession;
 import mano.web.WebApplication;
 
@@ -50,4 +51,11 @@ public interface HttpContext {
      * @return 
      */
     HttpSession getSession();
+    
+    /**
+     * 获取与当前请求相关联的用户。
+     * <p> 实现时禁止返回null。
+     * @return 
+     */
+    Principal getUser();
 }
