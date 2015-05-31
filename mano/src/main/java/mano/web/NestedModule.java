@@ -30,12 +30,12 @@ public abstract class NestedModule extends Module implements ActionResult {
         init(context);
         //getRemainingRoutingPath
         //getRemainingRouteSegments
-        List<String> segments = new ArrayList<>();
+        //List<String> segments = new ArrayList<>();
         try {
-            if (segments.size() == 0) {
+            if (context.segments().size() == 0) {
                 resolveAndExecute(context, "index");
             } else {
-                resolveAndExecute(context, segments.remove(0));
+                resolveAndExecute(context, context.segments().remove(0));
             }
         } catch (Exception ex) {
             if(ex instanceof InvocationTargetException){

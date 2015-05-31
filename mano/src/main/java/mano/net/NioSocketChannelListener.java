@@ -76,13 +76,13 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
         this.serverChannel.socket().setReuseAddress(true);
         this.backlog = new java.util.concurrent.Semaphore(backlog <= 0 ? 100 : backlog);
     }
-    
+
     @Override
     protected void onStart() throws Exception {
         if (serverChannel == null) {
             throw new Exception("unbind address");
         }
-        
+
         mano.Queue<IOWorker> workers = new mano.util.ArrayBlockingQueue<>();
         IOWorker worker;
 
@@ -102,16 +102,15 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
         try {
             while (this.isOpen()) {
                 if (this.backlog.tryAcquire(1000 * 60 * 10, TimeUnit.MILLISECONDS)) {
-                    if(serverChannel!=null){
-                        
+                    if (serverChannel != null) {
+
 //                        NioChannel nc=new NioChannel();
 //                        nc.real=serverChannel.accept();
 //                        nc.real.configureBlocking(false);
 //                        nc.test();
-                        
                         worker = workers.poll();
                         worker.queue(serverChannel.accept());
-                        if(worker.running){
+                        if (worker.running) {
                             workers.offer(worker);
                         }
                     }
@@ -165,7 +164,7 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
                 int len = context.recv(buf);
                 //System.out.println("channel reading count:" + len);
                 if (len < 0) {
-                    context.handleError(new IOException("远程客户端连接中断。"));
+                    context.handleError(new IOException("Connection reset by peer"));
                     context.freeBuffer(buf);
                     return;
                 }
@@ -199,10 +198,26 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
             return this;
         }
 
+        boolean keep;
+        @Override
+        public boolean keepAndNextCall() {
+            return keep;
+        }
+        
         @Override
         protected void doExecute(ChannelContext context) {
             try {
-                context.send(buffer);
+                if(context.send(buffer)<0){
+                    context.handleError(new IOException("Connection reset by peer"));
+                    context.freeBuffer(buffer);
+                    keep=false;
+                    return;
+                }
+                
+                keep=buffer.hasRemaining();
+                if(!keep){
+                    context.freeBuffer(buffer);//TODO:监测
+                }
             } catch (IOException ex) {
                 context.handleError(ex);
             }
@@ -300,11 +315,11 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
         mano.util.ArrayBlockingQueue<java.nio.channels.SocketChannel> queued = new mano.util.ArrayBlockingQueue<>();
 
         public void queue(java.nio.channels.SocketChannel sc) {
-            if(!running){
+            if (!running) {
                 try {
                     sc.close();
                 } catch (IOException ex) {
-                    
+
                 }
             }
             queued.offer(sc);
@@ -314,9 +329,10 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
             selector = Selector.open();
         }
         boolean running;
+
         @Override
         public void run() {
-            running=true;
+            running = true;
             System.out.println("worker started:" + this.hashCode());
             try {
                 exec();
@@ -324,7 +340,7 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
                 ex.printStackTrace();//TODO:异常处理
             }
             System.out.println("worker stopped:" + this.hashCode());
-            running=false;
+            running = false;
         }
 
         public void exec() throws IOException {
@@ -337,9 +353,15 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
                 while ((sc = queued.poll()) != null) {
                     register(selector, sc);
                 }
-                if (selector.select(10) <= 0) {//TODO:TTFB等待过长这里的因素居多，重点关注
+                try {
+                    if (selector.select(10) <= 0) {//TODO:TTFB等待过长这里的因素居多，重点关注
+                        Thread.yield();
+                        //continue;
+                    }
+                } catch (Throwable err) {//阻止延时关闭时出现错误
                     Thread.yield();
-                    //continue;
+                    err.printStackTrace();
+                    continue;
                 }
 
                 iter = selector.selectedKeys().iterator();
@@ -360,10 +382,10 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
             NioChannel chan = createChannel();
             chan.key = sc.register(selector, 0, chan);//SelectionKey.OP_READ | SelectionKey.OP_WRITE
             chan.real = sc;
-            
+
             //chan.worker = this;
             selector.wakeup();
-            
+
             //System.out.println("conn:" + sc.getRemoteAddress());
             try (ChannelHandlerChain chain = getHandlerChain()) {
                 chain.handleOpened(chan);
@@ -371,13 +393,13 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
             //chan.connTime = System.currentTimeMillis();
         }
 
-        private int lingerTime = -1;
+        private int lingerTime = 10000;//1m
 
         protected void configureSocket(Socket socket) {
             try {
                 socket.setTcpNoDelay(true);
                 if (lingerTime >= 0) {
-                    socket.setSoLinger(true, lingerTime / 1000);
+                    socket.setSoLinger(true, lingerTime);
                 } else {
                     socket.setSoLinger(false, 0);
                 }
@@ -398,12 +420,14 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
         long runtime;
         long connTime;
         long requestId;
-        public long getRequestId(){
+
+        public long getRequestId() {
             return requestId;
         }
+
         public NioChannel() {
             connTime = System.currentTimeMillis();
-            requestId=this.hashCode();
+            requestId = this.hashCode();
             ScheduleTask.register(time -> {
                 //System.out.println("check...");
                 if (time - runtime > 5000) {
@@ -546,7 +570,7 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
 //                    real.shutdownOutput();
 //                    real.shutdownInput();
 //                }catch(Throwable t){}
-                
+
                 try {
                     real.close();
                 } catch (IOException ex) {
@@ -591,21 +615,21 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
                 handleError(t);
             }
         }
-        
-        void test() throws IOException{
+
+        void test() throws IOException {
             byte[] hello = ("hello,world " + DateTime.now()).getBytes();
-             StringBuilder sb = new StringBuilder();
-             sb.append("HTTP/1.1 200 OK").append("\r\n");
-             sb.append("Date:").append(DateTime.now().toGMTString()).append("\r\n");
-             sb.append("Connection:").append("close").append("\r\n");//Keep-Alive
-             sb.append("Content-length:").append(hello.length).append("\r\n");
-             sb.append("Content-Type:").append("text/html;charset=utf-8").append("\r\n");
-             sb.append("\r\n");
-             
-             this.send(ByteBuffer.wrap(sb.toString().getBytes()));
-             this.send(ByteBuffer.wrap(hello));
-             this.close();
-             
+            StringBuilder sb = new StringBuilder();
+            sb.append("HTTP/1.1 200 OK").append("\r\n");
+            sb.append("Date:").append(DateTime.now().toGMTString()).append("\r\n");
+            sb.append("Connection:").append("close").append("\r\n");//Keep-Alive
+            sb.append("Content-length:").append(hello.length).append("\r\n");
+            sb.append("Content-Type:").append("text/html;charset=utf-8").append("\r\n");
+            sb.append("\r\n");
+
+            this.send(ByteBuffer.wrap(sb.toString().getBytes()));
+            this.send(ByteBuffer.wrap(hello));
+            this.close();
+
         }
 
         public void filterInbound(ByteBuffer buffer) {

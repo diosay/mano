@@ -6,6 +6,7 @@
  */
 package mano.web;
 
+import java.util.List;
 import java.util.Map;
 import mano.logging.Logger;
 import mano.net.http.HttpContext;
@@ -185,5 +186,14 @@ public abstract class Module {
         return context.getEntries();
     }
     
+    public List<String> routeSegments(){
+        return context.segments();
+    }
+    
+    public void addRouteSegment(String segment){
+        
+        context.addRoutePath(segment);
+        
+    }
     
 }

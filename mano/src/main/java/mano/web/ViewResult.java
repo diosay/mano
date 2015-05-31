@@ -31,7 +31,7 @@ public class ViewResult implements ActionResult {
                 path = context.routePath().stream().reduce("~",
                         (result, element)
                         -> result = result +"/"+ element) + ".html";
-                //System.out.println(""+path);
+                System.out.println(""+path);
             }
         }
         
