@@ -108,6 +108,12 @@
                 <property name="view.engine">mano.service.http.OtplViewEngine</property>
             </add>
             
+            <add name="mano_plugs_module" class="mano.service.http.ManoPlugsModule">
+                <property name="def.mime">text/html</property>
+                <property name="def.encoding">utf-8</property>
+            </add>
+            
+            
         </modules>
     </default>
     
