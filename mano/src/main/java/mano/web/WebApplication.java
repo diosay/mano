@@ -321,7 +321,7 @@ public class WebApplication extends PropertyContext {
 
             @Override
             public String getAuthenticationType() {
-                return "default";
+                return "Not authenticated";
             }
 
             @Override
@@ -342,7 +342,10 @@ public class WebApplication extends PropertyContext {
         }
     }
 
-    private static final AnonymousPrincipal anonymousPrincipal=new AnonymousPrincipal();
+    /**
+     * 获取匿名认证主体。
+     */
+    protected static final Principal anonymousPrincipal=new AnonymousPrincipal();
     
     /**
      * 获取与当前应用关联的认证用户。
