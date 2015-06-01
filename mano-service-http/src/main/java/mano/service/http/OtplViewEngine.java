@@ -368,7 +368,7 @@ public class OtplViewEngine extends ViewEngine {
             if (file.startsWith("~/") || file.startsWith("~\\")) {
                 file = Utility.toPath(this.getViewdir(), file.substring(1)).toString();
             }
-            interpreter.exec((ExecutionContext) context, new File(file));
+            interpreter.exec((ExecutionContext) context, new File(file.toLowerCase()));
         } catch (Exception ex) {
             StringWriter sw = new StringWriter();
             sw.append("<pre>");

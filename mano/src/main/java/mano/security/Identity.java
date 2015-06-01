@@ -18,7 +18,7 @@ public interface Identity {
     /**
      * @return 返回标识的值。
      */
-    Serializable getValue();
+    Serializable value();
 
     /**
      * @return 返回认证的类型，未认证应返回 null。
@@ -33,9 +33,9 @@ public interface Identity {
     /**
      * @return 返回当前标识的 String 值。
      */
-    default String getString() {
+    default String stringValue() {
         try {
-            return getValue().toString();
+            return value().toString();
         } catch (Throwable ex) {
             return null;
         }
@@ -44,12 +44,12 @@ public interface Identity {
     /**
      * @return 返回当前标识的 Long 值，转换失败时返回 -1。
      */
-    default long getLongValue() {
+    default long longValue() {
         try {
-            if(getValue()!=null && (getValue() instanceof Long) || getValue() instanceof Integer){
-                return (Long)getValue();
+            if(value()!=null && (value() instanceof Long) || value() instanceof Integer){
+                return (Long)value();
             }
-            return Long.parseLong(getValue().toString());
+            return Long.parseLong(value().toString());
         } catch (Throwable ex) {
             return -1;
         }
@@ -58,12 +58,12 @@ public interface Identity {
     /**
      * @return 返回当前标识的 Integer 值，转换失败时返回 -1。
      */
-    default int getIntValue() {
+    default int intValue() {
         try {
-            if(getValue()!=null && getValue() instanceof Integer){
-                return (Integer)getValue();
+            if(value()!=null && value() instanceof Integer){
+                return (Integer)value();
             }
-            return Integer.parseInt(getValue().toString());
+            return Integer.parseInt(value().toString());
         } catch (Throwable ex) {
             return -1;
         }

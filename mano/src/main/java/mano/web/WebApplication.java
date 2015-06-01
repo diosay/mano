@@ -315,7 +315,7 @@ public class WebApplication extends PropertyContext {
         Identity id = new Identity() {
 
             @Override
-            public Serializable getValue() {
+            public Serializable value() {
                 return "Anonymous";
             }
 
