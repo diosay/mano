@@ -202,8 +202,11 @@ public class WebApplication extends PropertyContext {
             gen.message = "Problem accessing <b>" + context.getRequest().rawUrl() + "</b>. <br><b>Try the following:</b>:<ul><li>Check your spelling is correct and try again.</li><li>Contact to administrator and report this problem.</li></ul>";
         }
         try {
-            context.getResponse().setHeader("Connection", "close");
-            context.getResponse().status(gen.status.getStatus());
+            if(!context.getResponse().headerSent()){
+                context.getResponse().setHeader("Connection", "close");
+                context.getResponse().status(gen.status.getStatus());
+                context.getResponse().clearBody();
+            }
         } catch (Exception e) {
             //ignored
         }

@@ -11,8 +11,9 @@ package mano.data;
 /**
  * 表示数据分页信息。
  * @author junhwong
+ * @param <T>
  */
-public interface Pageable {
+public interface Pageable<T> {
     /**
      * @return 返回用于获取数据的起始偏移，从 0 开始。
      */
@@ -70,13 +71,13 @@ public interface Pageable {
      * @param result 当前数据结果。
      * @return 
      */
-    Pageable setResults(int total,Iterable result);
+    Pageable setResults(int total,Iterable<T> result);
     
     /**
      * 获取查询的数据结果。
      * @return 
      */
-    Iterable getResult();
+    Iterable<T> getResult();
     
     /**
      * 计算数字批量分页。

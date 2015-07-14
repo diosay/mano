@@ -354,13 +354,14 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
                     register(selector, sc);
                 }
                 try {
+                    
                     if (selector.select(10) <= 0) {//TODO:TTFB等待过长这里的因素居多，重点关注
                         Thread.yield();
                         //continue;
                     }
                 } catch (Throwable err) {//阻止延时关闭时出现错误
                     Thread.yield();
-                    err.printStackTrace();
+                    Log.TRACE.debug(err);
                     continue;
                 }
 
@@ -393,7 +394,7 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
             //chan.connTime = System.currentTimeMillis();
         }
 
-        private int lingerTime = 10000;//1m
+        private int lingerTime = 3600;//
 
         protected void configureSocket(Socket socket) {
             try {

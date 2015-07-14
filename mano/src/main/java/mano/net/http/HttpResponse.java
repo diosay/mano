@@ -182,6 +182,9 @@ public abstract class HttpResponse {
      */
     public abstract boolean isConnected();
 
+    //public abstract void clear();
+    public abstract void clearBody();
+    
     /**
      * 将请求重定向到新 URL 并指定该新 URL。
      *
