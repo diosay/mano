@@ -93,13 +93,14 @@ public class ManoPlugsModule implements HttpModule {
         }
         name = name.substring(0, lst) + "-" + width + "x" + height +ImageUtil.decode("ffffff").getRGB();
         // "-" + Color
-        File target = new File("D:\\tmp\\" + name + "." + ext);
+        //File.createTempFile(ext, ext)
+        //context.getServer().mapPath(path)
+        File target = new File(context.getServer().mapPath("WEB-INF/tmp/" + name + "." + ext));
         
         if (!target.exists() || !target.isFile()) {
             BufferedImage img = ImageUtil.resize(src, width, height, "ffffff");
             ImageUtil.saveJpeg(img, lst, target,ext);
         }
-        //
 
         return StaticFileModule.process(context, target.toString(), mappings.get(ext));
     }

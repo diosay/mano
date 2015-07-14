@@ -83,7 +83,7 @@ class HttpResponseImpl extends HttpResponse {
 
     @Override
     public void write(byte[] buffer, int offset, int count) {
-        if(contentLength>=1024*8){
+        if (contentLength >= 1024 * 8) {
             this.flush();
         }
         lock.lock();
@@ -154,20 +154,19 @@ class HttpResponseImpl extends HttpResponse {
         }
     }
 
-    private long getLength(){
-        long len=0;
-        for(ByteBuffer buf:buffers){
-            len+=buf.remaining();
+    private long getLength() {
+        long len = 0;
+        for (ByteBuffer buf : buffers) {
+            len += buf.remaining();
         }
         return len;
     }
-    
+
     @Override
     public void flush() {
         lock.lock();
         try {
             if (!headerSent) {
-                
 
                 //如果不是显示的长度和最终刷新，则使用块发送
                 if (!explicitContentLength && !endFlush) {
@@ -244,6 +243,20 @@ class HttpResponseImpl extends HttpResponse {
                     this.done = true;
                 }
             }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public void clearBody() {
+        lock.lock();
+        try {
+            checkAndThrowHeaderSent();
+            this.buffers.clear();
+            this.contentLength = 0;
+            this.explicitContentLength = false;
+            this.contentBuffer.clear();
         } finally {
             lock.unlock();
         }

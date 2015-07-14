@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Stack;
+import mano.DateTime;
 import mano.net.http.HttpContext;
 import mano.util.Utility;
 import mano.web.ViewContext;
@@ -25,9 +26,8 @@ import mano.web.ViewEngine;
  *
  * @author jun
  */
-
-
 public class OtplViewEngine extends ViewEngine {
+
     private Interpreter interpreter = new Interpreter();
 
     class SimpleExecutionContext extends ViewContext implements ExecutionContext {
@@ -38,6 +38,7 @@ public class OtplViewEngine extends ViewEngine {
 
         public SimpleExecutionContext(HttpContext c) {
             super(c);
+            this.set("now", DateTime.now());
         }
 
         @Override
@@ -172,9 +173,11 @@ public class OtplViewEngine extends ViewEngine {
         @Override
         public Object call(String funcName, Object[] args) {
 
-            if ("str".equals(funcName)) {
+            if ("str".equalsIgnoreCase(funcName)) {
                 return calls().str(args);
-            } else if ("len".equals(funcName)) {
+            }else if ("int".equalsIgnoreCase(funcName)) {
+                return Integer.parseInt(args[0].toString());
+            } else if ("len".equalsIgnoreCase(funcName)) {
                 if (args == null || args.length == 0 || args[0] == null) {
                     return -1;
                 } else if (args[0] instanceof CharSequence) {
@@ -187,15 +190,36 @@ public class OtplViewEngine extends ViewEngine {
                     return ((Map) args[0]).size();
                 }
                 return -1;
-            } else if ("iterator".equals(funcName)) {
+            } else if ("substr".equalsIgnoreCase(funcName)) {
+                if (args == null || args.length <= 1 || !(args[0] instanceof CharSequence)) {
+                    return null;
+                }
+
+                int len = 0;
+                try {
+                    len = Integer.parseInt(args[1].toString());
+                } catch (Throwable t) {
+                }
+
+                CharSequence cs = (CharSequence) args[0];
+                if (len > 0 && cs.length() > len) {
+                    if (args.length >= 3 && args[2] != null) {
+                        return cs.subSequence(0, len).toString() + args[2];
+                    } else {
+                        return cs.subSequence(0, len);
+                    }
+                } else {
+                    return cs;
+                }
+            } else if ("iterator".equalsIgnoreCase(funcName)) {
                 return calls().iterator(args[0]);
-            } else if ("iterator$hasNext".equals(funcName)) {
+            } else if ("iterator$hasNext".equalsIgnoreCase(funcName)) {
                 Iterator itor = (Iterator) args[0];
                 return itor.hasNext();
-            } else if ("iterator$next".equals(funcName)) {
+            } else if ("iterator$next".equalsIgnoreCase(funcName)) {
                 Iterator itor = (Iterator) args[0];
-                return !itor.hasNext()?null:itor.next();
-            } else if ("indexer".equals(funcName)) {
+                return !itor.hasNext() ? null : itor.next();
+            } else if ("indexer".equalsIgnoreCase(funcName)) {
                 if (args.length < 2) {
                     throw new UnsupportedOperationException("参数不匹配：" + funcName);
                 }
@@ -292,15 +316,17 @@ public class OtplViewEngine extends ViewEngine {
                 if (obj == null) {
                     obj = new Object[0];
                 }
-
-                if (obj instanceof Iterable) {
+                if (obj instanceof Iterator) {
+                    return ((Iterator) obj);
+                }
+                else if (obj instanceof Iterable) {
                     return ((Iterable) obj).iterator();
                 } else if (obj instanceof Map) {
                     return ((Iterable) ((Map) obj).entrySet()).iterator();
                 } else if (obj.getClass().isArray()) {
                     final Object array = obj;
                     final int size = Array.getLength(obj);
-                    return new Iterator() {
+                    return new Iterator() {//Adapter
                         int current = 0;
 
                         @Override
@@ -315,7 +341,7 @@ public class OtplViewEngine extends ViewEngine {
 
                     };
                 }
-                throw new RuntimeException("give object is a non-iterable object." + obj.getClass());
+                throw new RuntimeException("Give object is a non-iterable object." + obj.getClass());
             }
 
             @Override
@@ -347,6 +373,7 @@ public class OtplViewEngine extends ViewEngine {
     public ViewContext createContext(HttpContext context) {
         return new SimpleExecutionContext(context);
     }
+
     private void printRoot(StringWriter sb, Throwable t) {
         if (t == null) {
             return;
@@ -361,6 +388,7 @@ public class OtplViewEngine extends ViewEngine {
         sb.append("</pre></p>");
         printRoot(sb, t.getCause());
     }
+
     @Override
     public void render(ViewContext context) {
         try {
@@ -370,6 +398,9 @@ public class OtplViewEngine extends ViewEngine {
             }
             interpreter.exec((ExecutionContext) context, new File(file.toLowerCase()));
         } catch (Exception ex) {
+            if (!context.getContext().getResponse().headerSent()) {
+                throw new java.lang.RuntimeException(ex);
+            }
             StringWriter sw = new StringWriter();
             sw.append("<pre>");
             try (PrintWriter pw = new PrintWriter(sw)) {
@@ -377,7 +408,7 @@ public class OtplViewEngine extends ViewEngine {
                 ex.printStackTrace(pw);
             }
             sw.append("</pre>");
-            printRoot(sw,ex.getCause());
+            printRoot(sw, ex.getCause());
             context.getContext().getResponse().write(sw.toString());
         }
     }
