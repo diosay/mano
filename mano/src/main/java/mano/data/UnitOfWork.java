@@ -6,17 +6,24 @@
  */
 package mano.data;
 
+import java.sql.Connection;
+
 /**
  * 用于维护数据一致性的上下文工作单元。
  * @author jun
- * @param <T> 连接传话对象。
+ * @param <T> 连接/传话提供程序对象。
  */
 public interface UnitOfWork<T> extends AutoCloseable{
     
     /**
-     * @return the session
+     * @return the connection provider
      */
-    T getSession();
+    T provider();
+    
+    /**
+     * @return this Connection
+     */
+    Connection connect();
     
     /**
      * 提交本次更新。

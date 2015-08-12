@@ -368,7 +368,7 @@ public class Interpreter implements Closeable {
         return n.substring(0, len);
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main2(String[] args) throws Exception {
 
         Interpreter interpreter = new Interpreter();
         ArrayList<MyItem> list = new ArrayList<>();

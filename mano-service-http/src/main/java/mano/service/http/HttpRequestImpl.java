@@ -57,7 +57,8 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
     private TempOutputStream out;
     private final ReentrantLock lock = new ReentrantLock();
     final AtomicReference<ByteBuffer> loadBuffer = new AtomicReference<>();
-    java.util.concurrent.Semaphore readLock=new java.util.concurrent.Semaphore(1);
+    java.util.concurrent.Semaphore readLock = new java.util.concurrent.Semaphore(1);
+
     private synchronized void pre() {
         if (pred) {
             return;
@@ -107,7 +108,7 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
 //            loadBuffer.set(buffer);
 //            loadBuffer.notifyAll();
 //        }
-        
+
         loadBuffer.set(buffer);
         readLock.release();
 //        try{
@@ -149,7 +150,7 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
                 throw new InvalidOperationException(ex);
             }
         } else {
-            if(Log.TRACE.isDebugEnabled()){
+            if (Log.TRACE.isDebugEnabled()) {
                 Log.TRACE.debug("未找到标准实体内容解码器，请自行解码。");
             }
             //throw new UnsupportedOperationException("Not supported decoding."+headers.get("Content-Type").text());
@@ -221,7 +222,7 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
         }
         loadBuffer.set(context.keepBuffer);
         //writeEntityBody(context.keepBuffer);
-        ByteBuffer buffer=null;
+        ByteBuffer buffer = null;
         if (!loadedFlag.get() && loadBuffer.get() == null) {
             try {
                 //lock.lock();
@@ -231,7 +232,7 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
                 throw new InvalidOperationException(ex);
             }
         }
-        
+
         while (!loadedFlag.get()) {//
 //            if (loadBuffer.get() == null) {
 //                synchronized (loadBuffer) {
@@ -244,19 +245,19 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
 //                    }
 //                }
 //            }
-            
+
             try {
                 //System.out.println("in2");
-                if(readLock.tryAcquire(5, TimeUnit.SECONDS)){
-                    if(loadBuffer.get()==null){
+                if (readLock.tryAcquire(5, TimeUnit.SECONDS)) {
+                    if (loadBuffer.get() == null) {
                         Thread.yield();
                         continue;
-                    }else{
+                    } else {
                         //lock.unlock();
                         readLock.release();
                         buffer = loadBuffer.getAndSet(null);
                     }
-                }else{
+                } else {
                     this.context.channel().close();
                     throw new InvalidOperationException("等待数据上传超时。");
                 }
@@ -264,9 +265,8 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
                 this.context.channel().close();
                 throw new InvalidOperationException(ex);
             }
-            
+
             //System.out.println("in3");
-            
             if (buffer == null) {
                 throw new InvalidOperationException("等待数据上传超时。");
             }
@@ -339,6 +339,11 @@ class HttpRequestImpl extends HttpRequest implements HttpEntityBodyAppender {
 
     @Override
     public void appendFormItem(String name, String value) {
+        value = value == null ? "" : value;
+        if (form.containsKey(name)) {
+            String old = form.get(name);
+            value = (old == null ? "" : old)+","+value;
+        }
         form.put(name, value);
     }
 

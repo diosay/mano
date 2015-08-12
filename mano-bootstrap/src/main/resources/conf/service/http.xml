@@ -33,6 +33,8 @@
             
         <modules>
             <add name="static_file_module" class="mano.service.http.StaticFileModule">
+                
+                <!--MIME映射-->
                 <!--http://www.w3school.com.cn/media/media_mimeref.asp-->
                 <property name="ext:htm">text/html</property>
                 <property name="ext:html">text/html</property>
@@ -41,7 +43,7 @@
                 <property name="ext:dtd">text/xml</property>
                 <property name="ext:css">text/css</property>
                 <property name="ext:js">application/x-javascript</property>
-                <property name="ext:svg">image/svg+xml</property>
+                <property name="ext:json">application/x-javascript</property>
                 <!--图像-->
                 <property name="ext:jpg">image/jpeg</property>
                 <property name="ext:jpeg">image/jpeg</property>
@@ -50,6 +52,7 @@
                 <property name="ext:bmp">image/bmp</property>
                 <property name="ext:ico">image/x-icon</property>
                 <property name="ext:cur">image/vnd.microsoft.icon</property>
+                <property name="ext:svg">image/svg+xml</property>
                 <!--音/视频-->
                 <property name="ext:mp4">video/mp4</property>
                 <property name="ext:m4v">video/x-m4v</property>
@@ -64,8 +67,13 @@
                 <property name="ext:wmv">audio/x-ms-wmv</property>
                 <property name="ext:qt">video/quicktime</property>
                 <property name="ext:mov">video/quicktime</property>
-                <property name="ext:woff">application/x-font-woff</property>
                 <property name="ext:swf">application/x-shockwave-flash</property>
+                <!--字体-->
+                <property name="ext:woff">font/x-font-woff</property>
+                <property name="ext:woff2">font/x-font-woff2</property>
+                <property name="ext:eot">application/vnd.ms-fontobject</property>
+                <property name="ext:ttf">application/octet-stream</property>
+                <property name="ext:otf">application/octet-stream</property>
                 <!--文档-->
                 <property name="ext:doc">application/msword</property>
                 <property name="ext:ppt">appication/powerpoint</property>
@@ -83,6 +91,8 @@
                 <property name="ext:exe">application/octet-stream</property>
                 <property name="ext:rar">application/octet-stream</property>
                 <property name="ext:zip">application/octet-stream</property>
+                <property name="ext:xap">xapapplication/x-silverlight</property>
+                <property name="ext:xaml">application/xaml+xml</property>
                 <property name="ext:7z">application/octet-stream</property>
                 <property name="ext:gz">application/octet-stream</property>
                 <property name="ext:gz2">application/octet-stream</property>

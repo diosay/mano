@@ -8,23 +8,21 @@ package mano;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
-
+//http://blog.csdn.net/xiaojianpitt/article/details/2127731
 /**
  * 表示时间上的一刻，通常以日期和当天的时间表示。
  * <p>
  * DateTime
- * 类型表示范围在公元（世界标准时间）1970年1月1日午夜00:00:00到公元9999年12月31日晚上11:59:59之间的日期和时代。</p>
+ * 类型表示范围在公元（世界标准时间）1970年1月1日午夜00:00:00到公元9999年12月31日晚上11:59:59之间的日期和时间。</p>
  *
  * @author jun <jun@diosay.com>
  */
 public class DateTime {
 
-    private TimeZone _timeZone;
+    //private TimeZone _timeZone;
     private static final SimpleDateFormat _formatProvider = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
 
     public static final String FORMAT_ISO = "yyyy-MM-dd HH:mm:ss";
@@ -47,7 +45,7 @@ public class DateTime {
             _millisecond = 0;
 
     public DateTime() {
-        this._timeZone = TimeZone.getTimeZone("UTC+8");
+        //this._timeZone = TimeZone.getTimeZone("UTC+8");
     }
 
     public DateTime(int year,
@@ -376,6 +374,10 @@ public class DateTime {
 
     public static DateTime now() {
         return new DateTime(nowTime());
+    }
+    
+    public static DateTime zero() {
+        return new DateTime(0);
     }
 
     public static DateTime localNow() {

@@ -175,8 +175,23 @@ public class OtplViewEngine extends ViewEngine {
 
             if ("str".equalsIgnoreCase(funcName)) {
                 return calls().str(args);
-            }else if ("int".equalsIgnoreCase(funcName)) {
+            } else if ("int".equalsIgnoreCase(funcName)) {
+                if(args[0]==null){
+                    return 0;
+                }
                 return Integer.parseInt(args[0].toString());
+            } else if ("datetime".equalsIgnoreCase(funcName)) {
+                try {
+                    if (args.length >= 2) {
+                        if ("timestamp".equalsIgnoreCase(args[1] + "")) {
+                            return new DateTime(Long.parseLong(args[0].toString()));
+                        }
+                        return DateTime.parse(args[0].toString(), args[1].toString());
+                    }
+                    return DateTime.parse(args[0].toString(), DateTime.FORMAT_ISO);
+                } catch (Exception e) {
+                    return DateTime.zero();
+                }
             } else if ("len".equalsIgnoreCase(funcName)) {
                 if (args == null || args.length == 0 || args[0] == null) {
                     return -1;
@@ -318,8 +333,7 @@ public class OtplViewEngine extends ViewEngine {
                 }
                 if (obj instanceof Iterator) {
                     return ((Iterator) obj);
-                }
-                else if (obj instanceof Iterable) {
+                } else if (obj instanceof Iterable) {
                     return ((Iterable) obj).iterator();
                 } else if (obj instanceof Map) {
                     return ((Iterable) ((Map) obj).entrySet()).iterator();

@@ -394,15 +394,15 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
             //chan.connTime = System.currentTimeMillis();
         }
 
-        private int lingerTime = 3600;//
+        private int lingerTime = 7200;//3600
 
         protected void configureSocket(Socket socket) {
             try {
                 socket.setTcpNoDelay(true);
                 if (lingerTime >= 0) {
-                    socket.setSoLinger(true, lingerTime);
+                    //socket.setSoLinger(true, lingerTime);
                 } else {
-                    socket.setSoLinger(false, 0);
+                    //socket.setSoLinger(false, 0);
                 }
             } catch (SocketException e) {
                 Log.TRACE.debug(e);

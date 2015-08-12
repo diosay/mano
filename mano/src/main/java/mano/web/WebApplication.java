@@ -55,6 +55,13 @@ public class WebApplication extends PropertyContext {
      * @param appLoader
      */
     final void init(WebApplicationStartupInfo info, RuntimeClassLoader appLoader) {
+        
+        info.settings.forEach((key,val)->{
+            if(key!=null && val!=null){
+                this.items.put(key.toString(),val.toString());
+            }
+        });
+        
         log = new mano.logging.Log(info.name);
         startupInfo = info;
         loader = appLoader;

@@ -13,6 +13,7 @@ import com.diosay.otpl.runtime.OpcodeType;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import mano.util.Utility;
+import mano.ManoObject;
 
 /**
  * 操作符
@@ -161,15 +162,16 @@ public class Operator extends OpCode {
                 break;
             }
             case Operator.EQ: {
-                Object left = context.pop();
-                Object right = context.pop();
-                if (left != null) {
-                    context.push(left.equals(right));
-                } else if (right != null) {
-                    context.push(right.equals(left));
-                } else {
-                    context.push(right == left);
-                }
+                context.push(ManoObject.get(context.pop()).eq(context.pop()));
+//                Object left = context.pop();
+//                Object right = context.pop();
+//                if (left != null) {
+//                    context.push(left.equals(right));
+//                } else if (right != null) {
+//                    context.push(right.equals(left));
+//                } else {
+//                    context.push(right == left);
+//                }
                 break;
             }
             case Operator.GE: {
@@ -213,15 +215,16 @@ public class Operator extends OpCode {
                 break;
             }
             case Operator.NE: {
-                Object left = context.pop();
-                Object right = context.pop();
-                if (left != null) {
-                    context.push(!left.equals(right));
-                } else if (right != null) {
-                    context.push(!right.equals(left));
-                } else {
-                    context.push(right != left);
-                }
+                context.push(ManoObject.get(context.pop()).ne(context.pop()));
+//                Object left = context.pop();
+//                Object right = context.pop();
+//                if (left != null) {
+//                    context.push(!left.equals(right));
+//                } else if (right != null) {
+//                    context.push(!right.equals(left));
+//                } else {
+//                    context.push(right != left);
+//                }
                 break;
             }
             case Operator.NOT:{
