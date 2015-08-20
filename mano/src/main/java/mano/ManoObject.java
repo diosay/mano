@@ -214,7 +214,7 @@ public class ManoObject {
         return result;
     }
 
-    public static void main(String[] args) {
+    public static void mainx(String[] args) {
         //Float x = 1d;
         //ManoObject obj = ManoObject.get(3.5f);
         System.out.println("val:" + (ManoObject.get("f").ne(null)));

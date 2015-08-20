@@ -7,6 +7,7 @@
  */
 package com.diosay.otpl.runtime;
 
+import com.diosay.otpl.CompilationContext;
 import com.diosay.otpl.Document;
 import com.diosay.otpl.Parser;
 import com.diosay.otpl.runtime.opcodes.EndOfFile;
@@ -39,10 +40,42 @@ import mano.util.Utility;
  */
 public class Interpreter implements Closeable {
 
+//    private String targetPath;
+//    private String sourcePath;
+    public static final String TARGET_SUFFIX=".otc";
+    
     @Override
     public void close() throws IOException {
         //
     }
+
+//    /**
+//     * @return the targetPath
+//     */
+//    public String getTargetPath() {
+//        return targetPath;
+//    }
+//
+//    /**
+//     * @param target the targetPath to set
+//     */
+//    public void setTargetPath(String target) {
+//        this.targetPath = target;
+//    }
+//
+//    /**
+//     * @return the sourcePath
+//     */
+//    public String getSourcePath() {
+//        return sourcePath;
+//    }
+//
+//    /**
+//     * @param src the sourcePath to set
+//     */
+//    public void setSourcePath(String src) {
+//        this.sourcePath = src;
+//    }
 
     static class TempExecutionContext implements ExecutionContext {
 
@@ -50,13 +83,13 @@ public class Interpreter implements Closeable {
         private Stack<Object> stack = new Stack<>();
 
         @Override
-        public String getBasedir() {
+        public String getSourcePath() {
 
             return "E:\\repositories\\java\\mano\\mano-server-projects\\otpl4j\\demo";
         }
 
         @Override
-        public String getTempdir() {
+        public String getTargetPath() {
             return "C:\\Users\\jun\\Desktop\\demo";
         }
 
@@ -139,20 +172,20 @@ public class Interpreter implements Closeable {
         private HashMap<String, CodeLoader> loaders = new HashMap<>();
 
         @Override
-        public CodeLoader getLoader(File source, Interpreter interpreter) throws Exception {
+        public CodeLoader getLoader(String source) throws Exception {
 
             String id = Integer.toHexString(source.toString().hashCode());
             if (loaders.containsKey(id)) {
                 return loaders.get(id);
             }
 
-            if (interpreter == null) {
-                interpreter = newInterpreter();
-                loaders.put(id, interpreter.load(this, source));
-                freeInterpreter(interpreter);
-            } else {
-                loaders.put(id, interpreter.load(this, source));
-            }
+//            if (interpreter == null) {
+//                interpreter = newInterpreter();
+//                //loaders.put(id, interpreter.load(this, source));
+//                freeInterpreter(interpreter);
+//            } else {
+//                //loaders.put(id, interpreter.load(this, source));
+//            }
             return loaders.get(id);
         }
 
@@ -389,21 +422,28 @@ public class Interpreter implements Closeable {
         context.items.put("item", new MyItem());
         context.items.put("arr", new String[]{"张三","李四","王二"});
         context.items.put("substr", Interpreter.class.getDeclaredMethod("substr", String.class, Integer.class));
-        interpreter.exec(context, new File(file));
+        //interpreter.exec(context, new File(file));
 
     }
-
+    public void compileFile(CompilationContext context,String source) throws Exception {
+        this.compileFile(context, source, new File(context.getCanonicalTargetFile(source, TARGET_SUFFIX)));
+    }
     /**
      * 编译一个文件OTPL源文件。
      *
      * @param filename
      */
-    public void compileFile(File file, String basedir, File target) throws Exception {
-
+    public void compileFile(CompilationContext context,String source,  File target) throws Exception {
+        //System.out.println(""+target);
         Parser parser = new Parser();
         Charset encoding = Charset.forName("utf-8");
-        try (BufferedReader reader = Parser.open(file.toString())) {
-            Document dom = parser.parse(reader, file.toString());
+        File file=new File(context.getCanonicalSourceFile(source));
+        String sfile=context.getCanonicalRelativeFile(source, null, null,false);
+        //System.out.println(""+file);
+        //System.out.println(""+sfile);
+        //System.out.println(""+Integer.toHexString(sfile.hashCode()));
+        try (BufferedReader reader = Parser.open(file)) {
+            Document dom = parser.parse(reader, sfile);
             ArrayList<OpCode> list = new ArrayList<>();
             dom.getCompiler().compile(dom, list);
             list.add(new EndOfFile());
@@ -419,8 +459,8 @@ public class Interpreter implements Closeable {
                 //文件头
                 //版本     类型              目标文件最后修改时间 源文件最后修改时间 文件名长度 文件名
                 //OTPL-01 1(FILE 1,OTHER:2  {8 LONG}           {8}                {4}        N
-                byte[] bytes = file.toString().getBytes(encoding);
-                out.write("OTPL-02".getBytes(encoding));
+                byte[] bytes = sfile.getBytes(encoding);
+                out.write("OTPL-03".getBytes(encoding));
                 out.write(1);
                 out.write(Utility.toBytes(DateTime.nowTime()));
                 out.write(Utility.toBytes(file.lastModified()));
@@ -443,29 +483,29 @@ public class Interpreter implements Closeable {
      * @return
      * @throws Exception
      */
-    public CodeLoader load(ExecutionContext context, File source) throws Exception {
+    public CodeLoader createLoader(ExecutionContext context, String source) throws Exception {
         CodeLoader loader = new CodeLoader();
         File target;
-        target = new File(Utility.toPath(context.getTempdir(), Integer.toHexString(source.toString().hashCode()) + ".otc").toString());
-
+        target = new File(context.getCanonicalTargetFile(source, TARGET_SUFFIX));
+        
         boolean compiled = true;
         if (!target.exists() || !target.isFile()) {
             compiled = false;
         } else {
-            if (!loader.load(context, new FileInputStream(target), true, source)) {
+            if (!loader.load(context, new FileInputStream(target), true)) {
                 compiled = false;
             }
         }
 
         if (!compiled) {
             try {
-                compileFile(source, context.getBasedir(), target);
+                compileFile(context, source, target);
             } catch (java.io.FileNotFoundException ex) {
-                throw new java.io.FileNotFoundException("未找到源文件：" + source.toString());
+                throw new Exception("编译错误：" + source,ex);
             }
         }
 
-        if (!loader.load(context, new FileInputStream(target), true, source)) {
+        if (!loader.load(context, new FileInputStream(target), true)) {
             throw new mano.InvalidOperationException("编译失败");
         }
 
@@ -479,8 +519,8 @@ public class Interpreter implements Closeable {
      * @param source
      * @throws Exception
      */
-    public void exec(ExecutionContext context, File source) throws Exception {
-        this.exec(context, context.getLoader(source, this));
+    public void exec(ExecutionContext context, String source) throws Exception {
+        this.exec(context, context.getLoader(source));
     }
 
     /**

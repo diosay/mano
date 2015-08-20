@@ -27,10 +27,11 @@ public class CodeLoader {
     private Charset encoding;// = Charset.forName("utf-8");
     byte[] buf = new byte[8];
     private HashMap<Integer, OpCode> codes = new HashMap<>();
-    private File source;
+    //private File source;
     public CodeLoader parent;
     public CodeLoader child;
     public int pageAddr;
+    String source;
 
     void close() {
         if (input != null) {
@@ -41,13 +42,13 @@ public class CodeLoader {
         }
     }
 
-    public File getSource() {
+    public String getSource() {
         return source;
     }
 
-    public boolean load(ExecutionContext context, InputStream in, boolean b, File source) throws IOException {
-        encoding = context.inputEncoding();
-        this.source = source;
+    public boolean load(ExecutionContext context, InputStream in, boolean b) throws IOException {
+        encoding = context.inputEncoding();//, File source
+        //this.source = source;
         input = in;
 
         if (input.read(buf, 0, 8) != 8) { //head line
@@ -68,8 +69,9 @@ public class CodeLoader {
                 throw new mano.InvalidOperationException("无效的OTPL文件。");
             }
             long modified = Utility.toLong(buf, 0);//8
-            File file = new File(new String(loadString(), encoding));
-            if (!file.exists() || !file.isFile() || modified != file.lastModified()) {
+            source=new String(loadString(), encoding);
+            File file = new File(context.getCanonicalSourceFile(source));
+            if (file.exists() && file.isFile() && modified != file.lastModified()) {//如果有原文件，并且已经改过了
                 close();
                 return false;
             }

@@ -6,6 +6,7 @@
  */
 package mano;
 
+import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -20,7 +21,7 @@ import java.util.TimeZone;
  *
  * @author jun <jun@diosay.com>
  */
-public class DateTime {
+public class DateTime implements Serializable {
 
     //private TimeZone _timeZone;
     private static final SimpleDateFormat _formatProvider = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);

@@ -41,21 +41,22 @@ public class Include extends OpCode {
         if(obj==null){
             throw new mano.InvalidOperationException("未设置文件名称");
         }
-        String filename=obj.toString().replace("\\", "/");
+//        String filename=obj.toString().replace("\\", "/");
+//        
+//        if(filename.startsWith("~/")){
+//            filename=Utility.toPath(context.getSourcePath(), filename.substring(2)).toString();
+//        }else if(filename.startsWith("/")){
+//            if(this.getLoader()==null || this.getLoader().getSource()==null){
+//                throw new mano.InvalidOperationException("当前代码未关联加载器或不是执行的文件。");
+//            }
+//            filename=Utility.toPath(this.getLoader().getSource().getParent(), filename.substring(1)).toString();
+//        }
         
-        if(filename.startsWith("~/")){
-            filename=Utility.toPath(context.getBasedir(), filename.substring(2)).toString();
-        }else if(filename.startsWith("/")){
-            if(this.getLoader()==null || this.getLoader().getSource()==null){
-                throw new mano.InvalidOperationException("当前代码未关联加载器或不是执行的文件。");
-            }
-            filename=Utility.toPath(this.getLoader().getSource().getParent(), filename.substring(1)).toString();
-        }
-        
-        try (Interpreter interpreter = context.newInterpreter()) {
-            interpreter.exec(context, new File(filename));
-            context.freeInterpreter(interpreter);
-        }
+//        try (Interpreter interpreter = context.newInterpreter()) {
+//            context.newInterpreter().exec(context, context.getCanonicalRelativeFile(obj.toString(), this.getLoader().getSource(), context.getSourcePath(),true));
+//            context.freeInterpreter(interpreter);
+//        }
+        context.newInterpreter().exec(context, context.getCanonicalRelativeFile(obj.toString(), this.getLoader().getSource(), context.getSourcePath(),true));
         return this.getAddress()+1;
     }
     

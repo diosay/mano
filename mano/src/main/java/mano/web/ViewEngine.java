@@ -7,6 +7,7 @@
 package mano.web;
 
 import java.io.File;
+import java.util.Map;
 import mano.InvalidOperationException;
 import mano.net.http.HttpContext;
 
@@ -63,18 +64,22 @@ public abstract class ViewEngine {
      */
     public void setViewdir(String path) {
         File file = new File(path);
-        if (!file.exists() || !file.isDirectory()) {
+        
+        try {
+            if (!file.exists() || !file.isDirectory()) {
             throw new InvalidOperationException("指定路径不是一个有效目录：" + path);
         }
-        try {
-
+            viewdir = file.getAbsolutePath();
             if (!file.canRead()) {
                 file.setReadable(true);
             }
         } catch (Exception ex) {
-            throw new InvalidOperationException("指定路径不可读或写，尝试设置但失败：" + path, ex);
+            ex.printStackTrace();
+            //throw new InvalidOperationException("指定路径不可读，尝试设置但失败：" + path, ex);
         }
-        viewdir = file.getAbsolutePath();
+        
+        viewdir=(viewdir==null || "".equals(viewdir))?path:viewdir;
+        System.out.println("DDDD:"+viewdir);
     }
 
     /**
@@ -91,16 +96,16 @@ public abstract class ViewEngine {
     /**
      * 创建新视图上下文的工厂方法。
      * @param context
-     * @return 
+     * @return 视图上下文
      */
     public abstract ViewContext createContext(HttpContext context);
     
     /**
      * 解释并执行OTPL视图。
-     * @param service 当前上下文
-     * @param tempFilename
-     * @return
+     * @param context 当前上下文.
      */
-    public abstract void render(ViewContext service);
+    public abstract void render(ViewContext context);
+    
+    public abstract void init(Map<String,Object> evn);
 
 }

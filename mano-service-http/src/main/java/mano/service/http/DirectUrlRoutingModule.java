@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import mano.net.http.HttpContext;
@@ -31,9 +32,13 @@ public class DirectUrlRoutingModule implements HttpModule {
     public void init(WebApplication app, Properties params) {
         this.app = app;
         try {
+            HashMap evn=new HashMap();
+            
             viewEngine = (ViewEngine) app.getLoader().newInstance(params.getProperty("view.engine"));
             viewEngine.setTempdir(Utility.toPath(app.getApplicationPath(), "WEB-INF/tmp").toString());
             viewEngine.setViewdir(Utility.toPath(app.getApplicationPath(), "views").toString());
+            evn.put("otc.path",Utility.toPath(app.getApplicationPath(), "bin/otc").toString());
+            viewEngine.init(evn);
         } catch (Throwable ex) {
             if (app.getLogger().isDebugEnabled()) {
                 app.getLogger().debug("failed to initialization module:", ex);

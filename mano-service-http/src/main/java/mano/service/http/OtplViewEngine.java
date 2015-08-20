@@ -5,6 +5,7 @@ import com.diosay.otpl.runtime.CodeLoader;
 import com.diosay.otpl.runtime.ExecutionContext;
 import com.diosay.otpl.runtime.Interpreter;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Array;
@@ -16,6 +17,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Stack;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import mano.DateTime;
 import mano.net.http.HttpContext;
 import mano.util.Utility;
@@ -30,11 +33,32 @@ public class OtplViewEngine extends ViewEngine {
 
     private Interpreter interpreter = new Interpreter();
 
+    @Override
+    public void init(Map<String, Object> evn) {
+        //System.out.println("hhhhhhhhhhhhhhhhhhhhhhh\r\nhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh\r\n"+evn.getOrDefault("otc.path", ""));
+        String otc=evn.getOrDefault("otc.path", "").toString();
+        File path=new File(otc);
+        if(path.exists() && path.isDirectory()){
+            path.listFiles((File file)->{
+                System.out.println(""+file.getName());
+                if(file.isFile() && file.getName().endsWith(Interpreter.TARGET_SUFFIX)){
+                    try {
+                        //System.out.println("cope "+file.toString()+" to "+Utility.toPath(this.getTempdir(), file.getName()).toString());
+                        Utility.copyFile(file.toString(),Utility.toPath(this.getTempdir(), file.getName()).toString());
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+                return false;
+            });
+        }
+    }
+
     class SimpleExecutionContext extends ViewContext implements ExecutionContext {
 
         //private HashMap<String, Object> items = new HashMap<>();
         private Stack<Object> stack = new Stack<>();
-        private HashMap<String, CodeLoader> loaders = new HashMap<>();
+        private HashMap<Integer, CodeLoader> loaders = new HashMap<>();
 
         public SimpleExecutionContext(HttpContext c) {
             super(c);
@@ -42,13 +66,13 @@ public class OtplViewEngine extends ViewEngine {
         }
 
         @Override
-        public String getBasedir() {
+        public String getSourcePath() {
             return getViewdir();
             //return "E:\\repositories\\java\\mano\\mano-server-projects\\otpl4j\\demo";
         }
 
         @Override
-        public String getTempdir() {
+        public String getTargetPath() {
             return OtplViewEngine.this.getTempdir();
             //return "C:\\Users\\jun\\Desktop\\demo";
         }
@@ -119,7 +143,8 @@ public class OtplViewEngine extends ViewEngine {
 
         @Override
         public Interpreter newInterpreter() {
-            return new Interpreter();
+            return interpreter;
+            //return new Interpreter();
         }
 
         @Override
@@ -128,20 +153,22 @@ public class OtplViewEngine extends ViewEngine {
         }
 
         @Override
-        public CodeLoader getLoader(File source, Interpreter interpreter) throws Exception {
-
-            String id = Integer.toHexString(source.toString().hashCode());
+        public CodeLoader getLoader(String source) throws Exception {
+            source=this.getCanonicalRelativeFile(source, null, null, false);
+            //System.out.println("source:"+source);
+            int id = source.hashCode();//Integer.toHexString(source.hashCode());
             if (loaders.containsKey(id)) {
                 return loaders.get(id);
             }
 
-            if (interpreter == null) {
-                interpreter = newInterpreter();
-                loaders.put(id, interpreter.load(this, source));
-                freeInterpreter(interpreter);
-            } else {
-                loaders.put(id, interpreter.load(this, source));
-            }
+//            if (interpreter == null) {
+//                interpreter = newInterpreter();
+//                loaders.put(id, interpreter.createLoader(this, source));
+//                freeInterpreter(interpreter);
+//            } else {
+//                loaders.put(id, newInterpreter().createLoader(this, source));
+//            }
+            loaders.put(id, newInterpreter().createLoader(this, source));
             return loaders.get(id);
         }
 
@@ -406,11 +433,12 @@ public class OtplViewEngine extends ViewEngine {
     @Override
     public void render(ViewContext context) {
         try {
-            String file = context.getPath();
-            if (file.startsWith("~/") || file.startsWith("~\\")) {
-                file = Utility.toPath(this.getViewdir(), file.substring(1)).toString();
-            }
-            interpreter.exec((ExecutionContext) context, new File(file.toLowerCase()));
+//            String file = context.getPath();
+//            if (file.startsWith("~/") || file.startsWith("~\\")) {
+//                file = Utility.toPath(this.getViewdir(), file.substring(1)).toString();
+//            }
+            //interpreter.
+            interpreter.exec((ExecutionContext) context, context.getPath());
         } catch (Exception ex) {
             if (!context.getContext().getResponse().headerSent()) {
                 throw new java.lang.RuntimeException(ex);

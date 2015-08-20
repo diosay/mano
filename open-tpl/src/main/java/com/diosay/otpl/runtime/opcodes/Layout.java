@@ -42,24 +42,31 @@ public class Layout extends OpCode {
         if(obj==null){
             throw new mano.InvalidOperationException("未设置文件名称");
         }
-        String filename=obj.toString().replace("\\", "/");
+//        String filename=obj.toString().replace("\\", "/");
+//        
+//        if(filename.startsWith("~/")){
+//            filename=Utility.toPath(context.getSourcePath(), filename.substring(2)).toString();
+//        }else if(filename.startsWith("/")){
+//            if(this.getLoader()==null || this.getLoader().getSource()==null){
+//                throw new mano.InvalidOperationException("当前代码未关联加载器或不是执行的文件。");
+//            }
+//            filename=Utility.toPath(this.getLoader().getSource().getParent(), filename.substring(1)).toString();
+//        }
         
-        if(filename.startsWith("~/")){
-            filename=Utility.toPath(context.getBasedir(), filename.substring(2)).toString();
-        }else if(filename.startsWith("/")){
-            if(this.getLoader()==null || this.getLoader().getSource()==null){
-                throw new mano.InvalidOperationException("当前代码未关联加载器或不是执行的文件。");
-            }
-            filename=Utility.toPath(this.getLoader().getSource().getParent(), filename.substring(1)).toString();
-        }
+//        try (Interpreter interpreter = context.newInterpreter()) {
+//            this.getLoader().parent=context.getLoader(context.getCanonicalRelativeFile(obj.toString(), this.getLoader().getSource(), context.getSourcePath(),true), interpreter);
+//            this.getLoader().parent.pageAddr=this.getAddress()+1;
+//            this.getLoader().parent.child=this.getLoader();//TODO:循环引用
+//            context.newInterpreter().exec(context, this.getLoader().parent);
+//            context.freeInterpreter(interpreter);
+//        }
         
-        try (Interpreter interpreter = context.newInterpreter()) {
-            this.getLoader().parent=context.getLoader(new File(filename), interpreter);
+        this.getLoader().parent=context.getLoader(context.getCanonicalRelativeFile(obj.toString(), this.getLoader().getSource(), context.getSourcePath(),true));
             this.getLoader().parent.pageAddr=this.getAddress()+1;
             this.getLoader().parent.child=this.getLoader();//TODO:循环引用
-            interpreter.exec(context, this.getLoader().parent);
-            context.freeInterpreter(interpreter);
-        }
+            context.newInterpreter().exec(context, this.getLoader().parent);
+            //context.freeInterpreter(interpreter);
+        
         return this.getAddress()+1;
     }
     

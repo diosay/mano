@@ -35,7 +35,7 @@ import mano.util.ScheduleTask;
 public class NioSocketChannelListener extends ChannelListenerAbstract {
 
     private ServerSocketChannel serverChannel;
-    private java.util.concurrent.Semaphore backlog = new java.util.concurrent.Semaphore(0);
+    private java.util.concurrent.Semaphore backlog;
 
     @Override
     public void bind(String address, int backlog) throws IOException {
@@ -108,7 +108,7 @@ public class NioSocketChannelListener extends ChannelListenerAbstract {
 //                        nc.real=serverChannel.accept();
 //                        nc.real.configureBlocking(false);
 //                        nc.test();
-                        worker = workers.poll();
+                        worker = workers.poll();//采用轮寻的方式加入新连接
                         worker.queue(serverChannel.accept());
                         if (worker.running) {
                             workers.offer(worker);

@@ -25,6 +25,7 @@ import com.diosay.otpl.lexers.VariableLexer;
 import com.diosay.otpl.runtime.OpCode;
 import com.diosay.otpl.runtime.opcodes.*;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -52,7 +53,7 @@ public class Parser extends Compiler {
      * @throws FileNotFoundException
      * @throws IOException
      */
-    public static BufferedReader open(String file) throws FileNotFoundException, IOException {
+    public static BufferedReader open(File file) throws FileNotFoundException, IOException {
         FileInputStream input = new FileInputStream(file);
         String encoding = "UTF-8";
         byte bom[] = new byte[4];

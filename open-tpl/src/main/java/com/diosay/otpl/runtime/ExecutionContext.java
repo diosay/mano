@@ -8,6 +8,7 @@
 
 package com.diosay.otpl.runtime;
 
+import com.diosay.otpl.CompilationContext;
 import java.io.File;
 import java.nio.charset.Charset;
 
@@ -15,17 +16,8 @@ import java.nio.charset.Charset;
  * 表示一个执行上下文。
  * @author jun <jun@diosay.com>
  */
-public interface ExecutionContext {
+public interface ExecutionContext extends CompilationContext {
     
-    /**
-     * 获取源文件的根目录。
-     */
-    String getBasedir();
-    
-    /**
-     * 获取目标生成文件的临时目录。
-     */
-    String getTempdir();
     
     /**
      * 获取输出编译。
@@ -109,9 +101,10 @@ public interface ExecutionContext {
     /**
      * 根据源文件获取加载器。
      * @param source
+     * @param interpreter
      * @return 
      */
-    CodeLoader getLoader(File source,Interpreter interpreter) throws Exception;
+    CodeLoader getLoader(String source) throws Exception;
     
     /**
      * 设置当前源代码行号。

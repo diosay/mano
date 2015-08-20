@@ -14,7 +14,7 @@ import java.util.HashMap;
  *
  * @author junhwong
  */
-public class DbRecord extends HashMap<String,Serializable> implements Record {
+public class DbRecord extends HashMap<String,Serializable> {
 
     public Serializable get(String name) {
         

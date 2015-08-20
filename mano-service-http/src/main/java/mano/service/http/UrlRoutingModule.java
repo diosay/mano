@@ -303,9 +303,12 @@ public class UrlRoutingModule implements HttpModule {
         }
         htypes = null;
         try {
+            HashMap evn=new HashMap();
             viewEngine = (ViewEngine) app.getLoader().newInstance(params.getProperty("view.engine"));
             viewEngine.setTempdir(Utility.toPath(app.getApplicationPath(), "WEB-INF/tmp").toString());
             viewEngine.setViewdir(Utility.toPath(app.getApplicationPath(), "views").toString());
+            evn.put("otc.path",Utility.toPath(app.getApplicationPath(), "bin/otc").toString());
+            viewEngine.init(evn);
         } catch (Throwable ex) {
             if (app.getLogger().isDebugEnabled()) {
                 app.getLogger().debug("failed to initialization module:", ex);

@@ -64,7 +64,7 @@ public class CallBlock extends OpCode {
         
         try (Interpreter interpreter = context.newInterpreter()) {
             interpreter.exec(context, blk.getLoader(),blk.getBeginAddress(),blk.getEndAddress());
-            context.freeInterpreter(interpreter);
+            //context.freeInterpreter(interpreter);
         }
         
         return this.getAddress()+1;
