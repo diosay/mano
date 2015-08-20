@@ -20,4 +20,10 @@ public class App extends WebApplication {
     protected void onInit() {
         this.regisiterHandlers(HomeController.class);
     }
+    
+    @Override
+    public String[] getActionNamespaces(){
+        return new String[]{"com.diosay.demowebapp"};
+    }
+    
 }
