@@ -23,8 +23,8 @@ public class Compiler {
     public static void main(String[] args){
         //E:\repositories\view-repo\clamp-webapp\views\admin
         //E:\repositories\view-repo\clamp-webapp\views\admin\admin\ad.html
-        String otplTemplateSourceDirectory="E:\\repositories\\view-repo\\clamp-webapp\\views";
-        String otplTargetDirectory="E:\\repositories\\view-repo\\clamp-webapp\\bin\\otc";
+        String otplTemplateSourceDirectory="E:\\repositories\\clamp\\clamp-web\\views";
+        String otplTargetDirectory="E:\\repositories\\clamp\\clamp-web\\bin\\otc";
         
        File targetDir = new File(otplTargetDirectory);
         File sourceDir = new File(otplTemplateSourceDirectory);
