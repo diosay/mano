@@ -8,25 +8,33 @@ package com.diosay.otpl.tools;
 import com.diosay.otpl.CompilationContext;
 import com.diosay.otpl.runtime.Interpreter;
 import java.io.File;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
  * @author junhwong
  */
 public class Compiler {
-    static void error(String s){
+    static String map;
+    static String otplTemplateSourceDirectory = "E:\\repositories\\clamp\\clamp-web\\views";
+    static String otplTargetDirectory = "E:\\repositories\\clamp\\clamp-web\\bin\\otc";
+    static void error(String s) {
         System.out.println(s);
     }
-    static void error(Exception ex){
+
+    static void error(Exception ex) {
         ex.printStackTrace();
     }
-    public static void main(String[] args){
+
+    public static void main(String[] args) {
         //E:\repositories\view-repo\clamp-webapp\views\admin
         //E:\repositories\view-repo\clamp-webapp\views\admin\admin\ad.html
-        String otplTemplateSourceDirectory="E:\\repositories\\clamp\\clamp-web\\views";
-        String otplTargetDirectory="E:\\repositories\\clamp\\clamp-web\\bin\\otc";
         
-       File targetDir = new File(otplTargetDirectory);
+        
+
+        File targetDir = new File(otplTargetDirectory);
         File sourceDir = new File(otplTemplateSourceDirectory);
         if (!sourceDir.exists() || !sourceDir.isDirectory()) {
             error("模板根路径不存在");
@@ -37,7 +45,7 @@ public class Compiler {
         }
         try {
             if (!targetDir.exists() && !targetDir.mkdirs()) {
-                error("模板编译目标路径不存在，尝试创建失败:"+targetDir);
+                error("模板编译目标路径不存在，尝试创建失败:" + targetDir);
                 return;
             } else if (!targetDir.canRead() || !targetDir.canWrite()) {
                 error("模板根路径不能读或写");
@@ -69,6 +77,21 @@ public class Compiler {
             }
             return false;
         });
+        
+        File mapFile=new File(otplTargetDirectory+"\\out.map");
+        if(mapFile.exists()){
+            mapFile.delete();
+        }
+        try {
+            mapFile.createNewFile();
+            try (java.io.PrintStream ps = new java.io.PrintStream(mapFile.getPath(),"utf8")) {
+                ps.append(map);
+                ps.flush();
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
 
     }
 
@@ -76,8 +99,9 @@ public class Compiler {
         File file = new File(path + "/" + name);
         if (!file.exists()) {
         } else if (file.isFile()) {
-            error("compiling "+file);
-            interpreter.compileFile(context, parent + "/" + name);
+            error("compiling " + file);
+            File target =interpreter.compileFile(context, parent + "/" + name);
+            map+=(file.getPath().replace(otplTemplateSourceDirectory, ""))+" -> "+(target.getPath().replace(otplTargetDirectory, ""))+"\r\n";
         } else if (file.isDirectory()) {
             file.list((dir, name2) -> {
                 try {
@@ -89,5 +113,5 @@ public class Compiler {
             });
         }
     }
-    
+
 }

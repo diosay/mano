@@ -425,15 +425,15 @@ public class Interpreter implements Closeable {
         //interpreter.exec(context, new File(file));
 
     }
-    public void compileFile(CompilationContext context,String source) throws Exception {
-        this.compileFile(context, source, new File(context.getCanonicalTargetFile(source, TARGET_SUFFIX)));
+    public File compileFile(CompilationContext context,String source) throws Exception {
+        return this.compileFile(context, source, new File(context.getCanonicalTargetFile(source, TARGET_SUFFIX)));
     }
     /**
      * 编译一个文件OTPL源文件。
      *
      * @param filename
      */
-    public void compileFile(CompilationContext context,String source,  File target) throws Exception {
+    public File compileFile(CompilationContext context,String source,  File target) throws Exception {
         //System.out.println(""+target);
         Parser parser = new Parser();
         Charset encoding = Charset.forName("utf-8");
@@ -472,6 +472,8 @@ public class Interpreter implements Closeable {
 
             }
         }
+        
+        return target;
 
     }
 
