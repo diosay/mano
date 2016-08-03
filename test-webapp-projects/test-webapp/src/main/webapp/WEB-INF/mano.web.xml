@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application name="web_application" host="*:9999" vpath="/" class="com.diosay.test.webapp.App">
+    <bundle>
+        <name>web_application</name>
+        <version>0.0.0.0</version>
+        <summery>org\.osgi\.framework\.**{[\w_\.]+}</summery>
+        <class-path>~/WEB-INF/lib,~/WEB-INF/classes</class-path>
+        <scope>private</scope>
+        <startup>com.diosay.test.webapp.App</startup>
+        <requires>
+            <service name="service" version="0.0.0.0"/>
+        </requires>
+        <exports>
+            <entry>org.osgi.framework.**</entry>
+        </exports>
+    </bundle>
+    <properties>
+        <property name="hibernate.cfg">~/WEB-INF/hibernate.cfg.xml</property>
+        <property name="controller.package.filtering">true</property>
+        <property name="controller.package.rule_section">controller.package.rule_section</property>
+    </properties>
+    <sections>
+        <section name="controller.package.rule_section" class="mano.configuration.ListElement">
+            <add>*/test-webapp-*.jar</add>
+        </section>
+    </sections>
+    <request host="*:9999" vpath="/"/>
+    <!--TODO:日志-->
+    <!--其它配置请见文档-->
+</application>
